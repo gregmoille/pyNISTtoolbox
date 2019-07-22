@@ -1,6 +1,6 @@
 def CreateLabel(fid, param, ncell):
 
-    
+
     txt = param.get('txt', 'NONE')
 
     x_pos_text = param.get('x_pos_text', None)
@@ -18,8 +18,8 @@ def CreateLabel(fid, param, ncell):
     fid.write(str(layer) + ' layer\n')
 
 
-    fid.write('<LlTxt_' + Name + str(ncell) + ' struct>\n')
-    name_out.append('LlTxt_' + Name + str(ncell))
+    fid.write('<LlTxt' + Name + str(ncell) + ' struct>\n')
+    name_out.append('LlTxt' + Name + str(ncell))
     fid.write('\t')
     fid.write(r'<{{{{ {} }}}} '.format(txt) +
               r'{{{{{}}}}} {} '.format(font,font_size_pattern) +
@@ -33,11 +33,11 @@ def CreateLabel(fid, param, ncell):
                   '{} 1 {} 0 '.format(n_txt*font_size_pattern*margin_fact, 0.75*font_size_pattern) +
                   '{} raceTrack>\n'.format(nr))
 
-    fid.write('<LabelFull' + Name + '_' + str(ncell) +
+    fid.write('<' +  Name + str(ncell) +
               ' struct>\n')
     for n in name_out:
         fid.write('\t<' + n + ' 0 0 0 1 {:.0f} instance>\n'.format(theta))
     fid.write('\n')
 
     fid.write('# ******************************\n')
-    return ['LabelFull' + Name + '_' + str(ncell)]
+    return [Name + str(ncell)]

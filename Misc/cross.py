@@ -13,7 +13,7 @@ def CrossAlign(fid, param, ncell):
     if not type(y0) == list:
         y0 = [y0]
 
-    fid.write('<Cross' + Name + '_' + str(ncell) + ' struct>\n')
+    fid.write('<' + Name  + str(ncell) + ' struct>\n')
     fid.write(str(layer) + ' layer\n')
 
     for x, y in zip(x0, y0):
@@ -41,4 +41,4 @@ def CrossAlign(fid, param, ncell):
 
 
 
-    return ['Cross' + Name + '_' + str(ncell)]
+    return [Name + str(ncell)]

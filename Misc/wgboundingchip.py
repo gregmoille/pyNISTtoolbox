@@ -12,8 +12,8 @@ def WgBoundingChip(fid, param, ncell):
 
     name_out = []
     fid.write(str(layer) + ' layer\n')
-    fid.write('<StgtWg_' + Name + str(ncell) + ' struct>\n')
-    name_out.append('StgtWg_' + Name + str(ncell))
+    fid.write('<StgtWg' + Name + str(ncell) + ' struct>\n')
+    name_out.append('StgtWg' + Name + str(ncell))
     xdec = Xspace
     ydec = Yspace
 
@@ -46,7 +46,7 @@ def WgBoundingChip(fid, param, ncell):
                   '{} 0 '.format(Wwg) +
                   '90degreeBend>\n')
 
-    fid.write('<BoundingFull' + Name + '_' + str(ncell) +
+    fid.write('<' + Name + str(ncell) +
               ' struct>\n')
     for n in name_out:
         fid.write('\t<' + n +
@@ -57,4 +57,4 @@ def WgBoundingChip(fid, param, ncell):
 
     fid.write('# ******************************\n')
 
-    return ['BoundingFull' + Name + '_' + str(ncell)]
+    return [Name + str(ncell)]

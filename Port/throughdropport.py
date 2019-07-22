@@ -115,11 +115,11 @@ def CreateThroughDropPortSeparated(fid, param, ncell, cnt_out):
     x1_in_cap = x1_in_lin - input_inv_taper_st_length
 
 
-    name_out.append(Name + 'InCapSt' + 'Cell' +
+    name_out.append(Name + 'ICp' + 'Cell' +
                     str(ncell) + '_' + str(cnt_out))
 
     fid.write(str(layerTapper) + ' layer\n')
-    fid.write('<' + Name + 'InCapSt' + 'Cell' +
+    fid.write('<' + Name + 'ICp' + 'Cell' +
             str(ncell) + '_' + str(cnt_out) + ' struct>\n')
 
 
@@ -268,10 +268,10 @@ def CreateThroughDropPortSeparated(fid, param, ncell, cnt_out):
 
 
 
-    name_out.append(Name + 'OutCapSt' + 'Cell' +
+    name_out.append(Name + 'Cp' + 'Cell' +
                     str(ncell) + '_' + str(cnt_out))
     fid.write(str(layerTapper) + ' layer\n')
-    fid.write('<' + Name + 'OutCapSt' + 'Cell' +
+    fid.write('<' + Name + 'Cp' + 'Cell' +
               str(ncell) + '_' + str(cnt_out) + ' struct>\n')
     if polarity == 'positive':
         fid.write('<{} {} '.format(x2_out_lin, y_thrgh) +
@@ -507,9 +507,9 @@ def CreateThroughDropPortSeparated(fid, param, ncell, cnt_out):
 
 
     fid.write('\n')
-    fid.write('<' + Name + '_ThroughPort' + str(ncell) +
+    fid.write('<' + Name + 'TghPrt' + str(ncell) +
                '_' +str(cnt_out)+ ' struct>\n')
     for n in name_out:
         fid.write('\t<' + n + ' 0 0 0 1 0 instance>\n')
 
-    return [Name + '_ThroughPort' + str(ncell) + '_' +str(cnt_out) ]
+    return [Name + 'TghPrt' + str(ncell) + '_' +str(cnt_out) ]

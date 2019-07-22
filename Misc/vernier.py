@@ -17,25 +17,25 @@ def CreateVernier(fid, param, ncell):
     name_out = []
     fid.write(str(layer) + ' layer\n')
 
-    # -- Creating the bounding box -- 
+    # -- Creating the bounding box --
     # ------------------------------------------------------------
     #      xa.       xb
     #       ----------   yb
     #      |          |
     #.     |          |
-    #       ----------   ya 
+    #       ----------   ya
 
     xspace = 10
     yspace = 10
     xa = 0
     xb = Ltot
     ya = 0
-    yb = H_long 
+    yb = H_long
 
     x1 = [xa+xspace, xb + xspace, xb -xspace, xa-xspace]
     x2 = [xb - xspace, xb + xspace , xa + xspace, xa-xspace]
     y1 = [yb+yspace, yb-yspace, ya-yspace, ya+yspace]
-    y2 = [yb+yspace, ya+yspace, ya-yspace, yb-yspace] 
+    y2 = [yb+yspace, ya+yspace, ya-yspace, yb-yspace]
 
     Wbd = 1
     name_out.append('BoundingVernier' + Name + str(ncell))
@@ -52,8 +52,8 @@ def CreateVernier(fid, param, ncell):
     x2 = [-xspace, -xspace, Ltot+xspace, Ltot+xspace]
     y1 = [-yspace, H_long + yspace, H_long+yspace, -yspace]
     y2 = [yspace, H_long - yspace, H_long-yspace, yspace]
-    name_out.append('BoundingVernierClose' + Name + str(ncell))
-    fid.write('<BoundingVernierClose' + Name + str(ncell) + ' struct>\n')
+    name_out.append('BgV' + Name + str(ncell))
+    fid.write('<BgV' + Name + str(ncell) + ' struct>\n')
     for ii in range(0, len(x1)):
         fid.write('\t<{} {} '.format(x1[ii], y1[ii]) +
                   '{} {} '.format(x2[ii], y2[ii]) +
@@ -69,13 +69,13 @@ def CreateVernier(fid, param, ncell):
     # -- Create the major and minor tick --
     # ------------------------------------------------------------
     # name_out.append('Long_vernier' + Name + str(ncell))
-    fid.write('<Long_vernier' + Name + str(ncell) + ' struct>\n')
+    fid.write('<Lvg' + Name + str(ncell) + ' struct>\n')
     fid.write('\t<0 0 ' +
               '{} 0 '.format(H_long) +
               '{} 90 '.format(W) +
               '1 1 waveguide>\n')
     # name_out.append('Short_vernier' + Name + str(ncell))
-    fid.write('<Short_vernier' + Name + str(ncell) + ' struct>\n')
+    fid.write('<SV' + Name + str(ncell) + ' struct>\n')
     fid.write('\t<0 0 ' +
               '{} 0 '.format(H_short) +
               '{} 90 '.format(W) +
@@ -84,9 +84,9 @@ def CreateVernier(fid, param, ncell):
     # -- Create the array for vernier --
     # ------------------------------------------------------------
     Nmajor = int(np.floor(Ltot/longspace)) + 1
-    name_out.append('Comb_vernier' + Name + str(ncell))
-    fid.write('<Comb_vernier' + Name + str(ncell) + ' struct>\n')
-    fid.write('\t<Long_vernier' + Name + str(ncell) +
+    name_out.append('CbV' + Name + str(ncell))
+    fid.write('<CbV' + Name + str(ncell) + ' struct>\n')
+    fid.write('\t<Lvg' + Name + str(ncell) +
               ' 0 0 ' +
               '{} 1 '.format(Nmajor) +
               '{} 0 1 '.format(longspace) +
@@ -95,15 +95,15 @@ def CreateVernier(fid, param, ncell):
     Nminor = int(np.floor(longspace/shortspace))-1
     ydec = (H_long - H_short)/2
     for ii in range(0, Nmajor-1):
-        fid.write('\t<Short_vernier' + Name + str(ncell) +
+        fid.write('\t<SV' + Name + str(ncell) +
                   ' {} {} '.format(ii*longspace + shortspace, ydec) +
                   '{} 1 '.format(Nminor) +
                   '{} 0 1 '.format(shortspace) +
                   'arrayRect>\n')
 
-   
 
-    
+
+
     # fprintf(fid,'\t<0 -5 205 -5 1 0 0 0 waveguide>\n');      %Bottom straight
     # fprintf(fid,'\t<210 0 310 0 1 90 0 0 waveguide>\n');    %Right straight
     # fprintf(fid,'\t<205 105 0 105 1 0 0 0 waveguide>\n');    %Top straight
@@ -115,9 +115,9 @@ def CreateVernier(fid, param, ncell):
 
 
 
-    # -- Wrap up everything -- 
+    # -- Wrap up everything --
     # ------------------------------------------------------------
-    fid.write('<VernierFull' + Name + '_' + str(ncell) +
+    fid.write('<' + Name + '_' + str(ncell) +
               ' struct>\n')
     for n in name_out:
         fid.write('\t<' + n + ' {} {} 0 1 0 instance>\n'.format(x0-3*Ltot/2 +xdec,y0))
@@ -125,4 +125,4 @@ def CreateVernier(fid, param, ncell):
 
     fid.write('# ******************************\n')
 
-    return ['VernierFull' + Name + '_' + str(ncell)]
+    return [ Name + '_' + str(ncell)]

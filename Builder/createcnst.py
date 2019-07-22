@@ -1,4 +1,7 @@
 import os
+from itertools import compress
+import numpy as np
+import ipdb
 
 def CreateCNST(cell_type, param, cnstname,
                CNSTpath="//Users/greg/GoogleDrive/Work/Techno/NIST/" +
@@ -29,8 +32,30 @@ def CreateCNST(cell_type, param, cnstname,
         fun = eval(cell_type[ii])
         name_full += fun(fid, param[ii], ii)
 
-    fid.write('\n<{} struct>\n'.format(top_cell_name))
-    for n in name_full:
-        fid.write('<' + n + ' {:.3f} {:.3f} 0 1 0 instance>\n'.format(xdec, ydec))
+    name_full = np.array(name_full)
+    cell_list = []
+    # ipdb.set_trace()
+    while not name_full.size == 0:
+      test = [xx.startswith(name_full[0].split('_')[0])for xx in name_full]
+      ind = np.argwhere(test).flatten()
+      cell_list += [name_full[ind]]
+      name_full = np.delete(name_full, ind)
 
+    # ipdb.set_trace()
+
+    for cell in cell_list:
+        if len(cell)>1:
+            fid.write('\n<{} struct>\n'.format(cell[0].split('_')[0]))
+            for n in cell:
+                fid.write('\t<{} 0 0 0 1 0 instance>\n'.format(n))
+
+
+
+    if not top_cell_name == None:
+        fid.write('\n<{} struct>\n'.format(top_cell_name))
+        for cell in cell_list:
+            if len(cell)>1:
+                fid.write('\t<{} {:.3f} {:.3f}  0 1 0 instance>\n'.format(cell[0].split('_')[0], xdec, ydec))
+            else:
+                fid.write('\t<{} {:.3f} {:.3f}  0 1 0 instance>\n'.format(cell[0], xdec, ydec))
     fid.close()

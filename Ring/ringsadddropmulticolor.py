@@ -98,7 +98,7 @@ def CreateWGRingsAddDropMutlicolor(fid, param, ncell):
 
                     # Create the Through port
                     WG_through_port_y_pos = y_pos + rr + g + W/2
-                    params_port['name'] = Name + '_' + str(cnt)
+                    params_port['name'] = Name + 'Ports_' + str(cnt)
                     params_port['RR'] = rr
                     params_port['G'] = g
                     params_port['RW'] = rw
@@ -214,6 +214,31 @@ def CreateWGRingsAddDropMutlicolor(fid, param, ncell):
                                       '{} {} '.format(Wdrop, exp_w) +
                                       '0 ringInfInvPosDSV>\n')
 
+                            fid.write('\t{} {} '.format(x0, y_pos) +
+                                    '{} {} '.format(rr-(rw) - exp_w, rr-(rw) ) +
+                                    '{:.0f} '.format(Nmodulation) +
+                                    '{} '.format(Amodulation) +
+                                    '10000 0 torusWaveIn\n')
+                        else:
+                            fid.write('\t{} {} '.format(x0, y_pos) +
+                                    '{} {} '.format(rr-(rw), rr -rw/2  + Amodulation+rw/10) +
+                                    '{:.0f} '.format(Nmodulation) +
+                                    '{} '.format(Amodulation) +
+                                    '10000 0 torusWaveIn\n')
+                            fid.write('{} {} '.format(x0, y_pos) +
+                                      '{} {} {} '.format(rr-rw/2, rr, 0) +
+                                      '{} {} '.format(360, nr) +
+                                      'torus\n')
+
+                            fid.write('<{} {} '.format(-inp_WG_L, y_pos + rr + g +W/2) +
+                                      '{} {} '.format(inp_WG_L, y_pos + rr + g +W/2 ) +
+                                      '{} '.format(W) +
+                                      '0 0 0 waveguide>\n')
+
+                            fid.write('<{} {} '.format(-inp_WG_L, y_pos - rr - g - Wdrop/2) +
+                                      '{} {} '.format(inp_WG_L, y_pos - rr - g - Wdrop/2 ) +
+                                      '{} '.format(Wdrop) +
+                                      '0 0 0 waveguide>\n')
 
 
                         # fid.write('\t{} {} '.format(x0, y_pos) +
@@ -223,12 +248,8 @@ def CreateWGRingsAddDropMutlicolor(fid, param, ncell):
                         #           '{} {} {} '.format(rr-(rw) - exp_w/2, exp_w, 0) +
                         #           '{} {} '.format(360, nr) +
                         #           'torusW\n')
-                        if polarity == 'positive':
-                            fid.write('\t{} {} '.format(x0, y_pos) +
-                                    '{} {} '.format(rr-(rw) - exp_w, rr-(rw) ) +
-                                    '{:.0f} '.format(Nmodulation) +
-                                    '{} '.format(Amodulation) +
-                                    '10000 0 torusWaveIn\n')
+
+
 
 
                         Wcut = 2
@@ -297,17 +318,22 @@ def CreateWGRingsAddDropMutlicolor(fid, param, ncell):
                         txt_RR = ''
 
                     if len(G)>1:
-                        txt_G = ' G={:.3f}'.format(g)
+                        txt_G = ' G={:.0f}'.format(g*1e3)
                     else:
                         txt_G = ''
 
                     if len(RWetch)>1:
-                        txt_RWetch = ' RWetch={:.3f}'.format(rwetch)
+                        txt_RWetch = ' RWetch={:.0f}'.format(rwetch*1e3)
                     else:
                         txt_RWetch = ''
 
                     if len(RWin)>1:
-                        txt_RWin = ' RWin={:.3f}'.format(rwIn)
+                        if len(RWetch)>1:
+                            txt_RWin = ' RWin={:.0f}'.format(rwIn*1e3)
+                        else:
+                            if RWetch[0] == 0:
+                                txt_RWin = ' RW={:.0f}'.format(rwIn*1e3)
+
                     else:
                         txt_RWin = ''
 
@@ -318,7 +344,7 @@ def CreateWGRingsAddDropMutlicolor(fid, param, ncell):
                                    'y_pos_text': y_txt,
                                    'txt': txt,
                                    'font': font,
-                                   'name': Name + 'Cell' + str(ncell) + '_' + str(cnt)}
+                                   'name': 'Lbl' + Name.replace('_', '')  + 'Cell' + str(ncell) + '_' + str(cnt)}
                         name_out += CreateLabel(fid, par_lab, ncell)
 
                         if label_out:
@@ -326,7 +352,7 @@ def CreateWGRingsAddDropMutlicolor(fid, param, ncell):
                                        'y_pos_text': y_txt,
                                        'txt': txt,
                                        'font': font,
-                                       'name': Name + 'Cell' + str(ncell) + '_' + str(cnt)}
+                                       'name': 'Lbl' + Name.replace('_', '') + 'Cell' + str(ncell) + '_' + str(cnt)}
                             name_out += CreateLabel(fid, par_lab, ncell)
 
 
@@ -365,11 +391,11 @@ def CreateWGRingsAddDropMutlicolor(fid, param, ncell):
 
                     cnt += 1
 
-    fid.write('<RingStraightWg_MainCell' + str(ncell) + ' struct>\n')
+    fid.write('<' + Name + str(ncell) + ' struct>\n')
     for n in name_loop:
         fid.write('\t<' + n + ' 0 0 0 1 0 instance>\n')
 
     fid.write('\n')
     fid.write('# ******************************\n')
 
-    return ['RingStraightWg_MainCell' + str(ncell)]
+    return [Name + str(ncell)]
