@@ -59,8 +59,7 @@ def CreateWGRingPulleyWgShifted(fid, param, ncell):
     cnt_shift = 0
     name_out = []
     name_loop = []
-    print('------------------------------------')
-    y_pos = y0
+    y_pos = y0 - y_shift
     RRmax = np.max(RR)
     for lc in LC:
         for g in G:
@@ -68,10 +67,10 @@ def CreateWGRingPulleyWgShifted(fid, param, ncell):
                 for rrOut in RR:
                     for w in W:
                         rr  = rrOut - rw
-                        print('Creating Pulley WG coupled to RR: ')
-                        print('On the layer {}'.format(layer))
-                        print('RR={} RW={} '.format(rrOut, rw) +
-                              'g={} W={} Lc={}\n'.format(g, w,lc))
+                        # print('Creating Pulley WG coupled to RR: ')
+                        # print('On the layer {}'.format(layer))
+                        # print('RR={} RW={} '.format(rrOut, rw) +
+                        #       'g={} W={} Lc={}\n'.format(g, w,lc))
 
 
                         r1 = rr + g +w/2
@@ -166,7 +165,7 @@ def CreateWGRingPulleyWgShifted(fid, param, ncell):
 
                         yc = y_pos -(r1-rr -g - w)
                         y_txt = WG_through_port_y_pos + y_pos_text
-                        params_port['name'] = Name + '_' + str(cnt)
+                        params_port['name'] = Name  + str(cnt)
                         params_port['RR'] = rr
                         params_port['G'] = g
                         params_port['RW'] = rw
@@ -189,7 +188,6 @@ def CreateWGRingPulleyWgShifted(fid, param, ncell):
                         if cnt_shift>0:
                             name_out += CreateThroughPortCurveS(fid, params_port, ncell,cnt)
                         else:
-                            print('ICI')
                             name_out += CreateThroughPort(fid, params_port, ncell,cnt)
 
 
@@ -302,22 +300,20 @@ def CreateWGRingPulleyWgShifted(fid, param, ncell):
                             name_out += CreateLabel(fid, par_lab, ncell)
 
 
-                        subcell = 'RR{:.3f}RW{:.3f}G{:.3f}LC{:.0f}'.format(rr, rw, g, lc)
-                        subcell = subcell.replace('.', 'p')
-                        fid.write('<' + subcell + '_' + str(ncell) +
-                                  '_' + str(cnt) + ' struct>\n')
+                        subcell = '{}Ring{}'.format(Name, cnt)
+                        # subcell = subcell.replace('.', 'p')
+                        fid.write('<' + subcell + ' struct>\n')
                         for n in name_out:
                             fid.write('<' + n + ' 0 0 0 1 0 instance>\n')
                         fid.write('\n')
-                        name_loop.append(
-                            subcell + '_' + str(ncell) + '_' + str(cnt))
+                        name_loop.append(subcell)
 
                         cnt += 1
                         cnt_shift += 1
-    fid.write('<RingPulleyWg_MainCell' + str(ncell) + ' struct>\n')
+    fid.write('<'+ Name + str(ncell) + ' struct>\n')
     for n in name_loop:
         fid.write('<' + n + ' 0 0 0 1 0 instance>\n')
 
     fid.write('\n')
 
-    return ['RingPulleyWg_MainCell' + str(ncell)]
+    return [Name + str(ncell)]

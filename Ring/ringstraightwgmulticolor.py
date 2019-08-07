@@ -65,7 +65,7 @@ def CreateWGRingStraightWgMulticolor(fid, param, ncell):
     cnt = 0
     # fid.write('<' + Name +  'Array struct>\n' )
     # fid.write(str(layer) + ' layer\n')
-    print('------------------------------------')
+
 
     fid.write('{} layer\n'.format(layer[0]))
     name_loop = []
@@ -80,10 +80,10 @@ def CreateWGRingStraightWgMulticolor(fid, param, ncell):
                 for rwetch in RWetch:
                     name_out = []
                     rw = rwetch  + rwIn
-                    print('Creating Straight WG coupled to RR: ')
-                    print('On the layer {}'.format(layer))
-                    print('RR={} RW={} '.format(rr, rw) +
-                          'g={}\n'.format(g))
+                    # print('Creating Straight WG coupled to RR: ')
+                    # print('On the layer {}'.format(layer))
+                    # print('RR={} RW={} '.format(rr, rw) +
+                    #       'g={}\n'.format(g))
 
                     y_pos = y_shift * cnt + y0
                     x_xtx = x0 + x_pos_text
@@ -159,8 +159,8 @@ def CreateWGRingStraightWgMulticolor(fid, param, ncell):
                                 wadd = WetchAdd
                             fid.write('{} layer\n'.format(layer[1]))
                             name_out.append(
-                                Name + 'RingEtch' + str(ncell) + '_' + str(cnt))
-                            fid.write('<' + Name + 'RingEtch' + str(ncell) +
+                                Name + 'E' + str(ncell) + '_' + str(cnt))
+                            fid.write('<' + Name + 'E' + str(ncell) +
                                       '_' + str(cnt) + ' struct>\n')
                             fid.write('{} {} '.format(x0, y_pos) +
                                       '{} {} {} '.format(rr+wadd/2-(rwetch)/2, rwetch+wadd, 0) +
@@ -168,8 +168,8 @@ def CreateWGRingStraightWgMulticolor(fid, param, ncell):
                                       'torusW\n')
 
                     else:
-                        name_out.append(Name + 'Cell' + str(ncell) + '_' + str(cnt))
-                        fid.write('<' + Name + 'Cell' + str(ncell) +
+                        name_out.append(Name + 'C' + str(ncell) + '_' + str(cnt))
+                        fid.write('<' + Name + 'C' + str(ncell) +
                                   '_' + str(cnt) + ' struct>\n')
                         fid.write('\t<{} {} '.format(x0, y_pos) +
                                   '{} {} {} '.format(rr, rw, exp_w) +
@@ -220,8 +220,8 @@ def CreateWGRingStraightWgMulticolor(fid, param, ncell):
                                 wadd = WetchAdd
                             fid.write('{} layer\n'.format(layer[1]))
                             name_out.append(
-                                Name + 'RingEtch' + str(ncell) + '_' + str(cnt))
-                            fid.write('<' + Name + 'RingEtch' + str(ncell) +
+                                Name + 'E' + str(ncell) + '_' + str(cnt))
+                            fid.write('<' + Name + 'E' + str(ncell) +
                                       '_' + str(cnt) + ' struct>\n')
                             # fid.write('{} {} '.format(x0, y_pos) +
                             #           '{} {} {} '.format(rr+wadd/2-(rwetch)/2, rwetch+wadd, 0) +
@@ -231,7 +231,7 @@ def CreateWGRingStraightWgMulticolor(fid, param, ncell):
 
 
                             fid.write('\t{} {} '.format(x0, y_pos) +
-                                    '{} {} '.format(rr+wadd-(rwetch), rr+wadd) +
+                                    '{} {} '.format(rr-(rwetch), rr+wadd) +
                                     '{:.0f} '.format(Nmodulation) +
                                     '{} '.format(Amodulation) +
                                     '10000 0 torusWaveIn\n')
@@ -296,24 +296,24 @@ def CreateWGRingStraightWgMulticolor(fid, param, ncell):
                         #           '{} {} '.format(x1_in_lin-50, y_pos +rr + 10) +
                         #             '1 0 0 1 {}>\n'.format(wvg_type))
 
-                    subcell = 'RR{:.0f}RW{:.3f}W{:.3f}G{:.3f}'.format(rr, W, rw, g)
-                    subcell = subcell.replace('.', 'p')
+                    # subcell = 'Rg'.format(rr, W, rw, g)
+                    # subcell = subcell.replace('.', 'p')
                     # ipdb.set_trace()
-                    fid.write('<' + subcell + '_' + str(ncell) +
+                    fid.write('<Rg_' + str(ncell) +
                               '_' + str(cnt) + ' struct>\n')
                     for n in name_out:
                         fid.write('\t<' + n + ' 0 0 0 1 0 instance>\n')
 
                     fid.write('\n')
-                    name_loop.append(subcell + '_' + str(ncell) + '_' + str(cnt))
+                    name_loop.append('Rg_' + str(ncell) + '_' + str(cnt))
 
                     cnt += 1
 
-    fid.write('<RingStraightWg_MainCell' + str(ncell) + ' struct>\n')
+    fid.write('<' + Name + str(ncell) + ' struct>\n')
     for n in name_loop:
         fid.write('\t<' + n + ' 0 0 0 1 0 instance>\n')
 
     fid.write('\n')
     fid.write('# ******************************\n')
 
-    return ['RingStraightWg_MainCell' + str(ncell)]
+    return [Name  + str(ncell)]

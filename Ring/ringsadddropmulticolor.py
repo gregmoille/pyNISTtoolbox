@@ -2,7 +2,7 @@ from copy import copy
 import ipdb
 import numpy as np
 from NISTgenerator.Port import CreateThroughDropPortSeparated
-from NISTgenerator.Misc.label import CreateLabel
+from NISTgenerator.Misc import CreateLabel, CreateBumpStruct
 
 
 
@@ -39,6 +39,7 @@ def CreateWGRingsAddDropMutlicolor(fid, param, ncell):
     font = param.get('font', 'Source Code Pro')
 
     y_shift = param.get('y_shift', 0)
+    NTopdec = param.get('NTopdec', 3)
     input_inv_taper_length = param.get('input_inv_taper_length', 200)
     input_st_length = param.get('input_st_length', 10)
     input_inv_taper_st_length = param.get('input_inv_taper_st_length', None)
@@ -61,10 +62,22 @@ def CreateWGRingsAddDropMutlicolor(fid, param, ncell):
 
     params_port = copy(param)
 
+    debug = param.get('debug', False)
+
+    Wbdg = param.get('Wbdg', None)
+    Hbdg = param.get('Hbdg', None)
+    Bdg_layer = param.get('Bdg_layer', 98)
+
     if not type(G) == list:
         G = [G]
     if not type(Gdrop) == list:
         Gdrop = [Gdrop]*len(G)
+        countGdrop = 0
+    else:
+        if Gdrop == G:
+            countGdrop = 0
+        else:
+            countGdrop = 1
     if not type(RR) == list:
         RR = [RR]
     if not type(RWetch) == list:
@@ -75,22 +88,24 @@ def CreateWGRingsAddDropMutlicolor(fid, param, ncell):
     cnt = 0
     # fid.write('<' + Name +  'Array struct>\n' )
     # fid.write(str(layer) + ' layer\n')
-    print('------------------------------------')
+    # print('------------------------------------')
 
     fid.write('{} layer\n'.format(layer[0]))
     name_loop = []
 
-
+    y0original = copy(y0)
+    y0 = 0
     for g, gdrop in zip(G, Gdrop):
         for rr in RR:
             for rwIn in RWin:
                 for rwetch in RWetch:
                     name_out = []
                     rw = rwetch  + rwIn
-                    print('Creating Straight WG coupled to RR: ')
-                    print('On the layer {}'.format(layer))
-                    print('RR={} RW={} '.format(rr, rw) +
-                          'g={}\n'.format(g))
+                    if debug:
+                        print('Creating Straight WG coupled to RR: ')
+                        print('On the layer {}'.format(layer))
+                        print('RR={} RW={} '.format(rr, rw) +
+                              'g={}\n'.format(g))
 
                     y_pos = y_shift * cnt + y0
                     x_xtx = x0 + x_pos_text
@@ -391,9 +406,39 @@ def CreateWGRingsAddDropMutlicolor(fid, param, ncell):
 
                     cnt += 1
 
+    if Wbdg:
+        if countGdrop:
+            Hstrct  = (len(G)* len(RWin)* len(RWetch) * len(RR) * len(Gdrop) -1) * -1 * y_shift + \
+                    RR[0] + 10.5 + \
+                    RR[-1] + Gdrop[-1] + Wdrop + 2 + \
+                    0.25* RR[-1]
+        else:
+            Hstrct  = (len(G)* len(RWin)* len(RWetch) * len(RR)  -1) * -1 * y_shift + \
+                    RR[0] + 10.5 + \
+                    RR[-1] + Gdrop[-1] + Wdrop + 2 + \
+                    0.25* RR[-1]
+
+        if polarity == 'negative':
+            Hstrct = Hstrct - 2
+
+        ybgtop =  RR[0] + G[0] + W/2 + NTopdec*y_shift
+        ybdg = ybgtop + Hbdg - Hstrct/2
+
+
+
+
+        BoudBox = {'name': 'Bdg' + Name,
+                         'layer': Bdg_layer,
+                         'corner': (-Wbdg/2, -ybgtop - Hbdg),
+                         'w_h': (Wbdg, Hbdg),
+                         'Yspace': 0,
+                         'Xspace': 0,
+                         }
+        name_loop += CreateBumpStruct(fid, BoudBox, ncell)
+
     fid.write('<' + Name + str(ncell) + ' struct>\n')
     for n in name_loop:
-        fid.write('\t<' + n + ' 0 0 0 1 0 instance>\n')
+        fid.write('\t<' + n + ' 0 {:.3f} 0 1 0 instance>\n'.format(-RR[0] - G[0] - W/2))
 
     fid.write('\n')
     fid.write('# ******************************\n')

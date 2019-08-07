@@ -10,3 +10,4 @@ from .liftoffstruct import CreateLiftOff
 from .cross import CrossAlign
 from .dash import Dash
 from .nanoscribepattern import NanoScribePattern
+from . fieldBoxes import FieldBox

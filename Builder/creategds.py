@@ -3,6 +3,8 @@ import os
 import platform
 import shutil
 import gdspy
+import warnings
+warnings.filterwarnings("ignore")
 
 def CreateGDS(cnst_name, CNSTpath="//Users/greg/GoogleDrive/Work/Techno/NIST/" +
                "CNSTnanoToolboxV2017.05.01/cnst_script_files/",
@@ -84,12 +86,12 @@ def CreateGDS(cnst_name, CNSTpath="//Users/greg/GoogleDrive/Work/Techno/NIST/" +
     #           gdsName + '.log for further details')
     #     ERROR = 'ERROR Generating .gds - double check the .log'
 
-    if platform.system().lower() == 'darwin':
-        title = 'CNST NanoToolBox'
-        subtitle = 'Completed {} GDS'.format(cnst_name.split('.gds')[0])
-        # message = ERROR
-        # The notifier function
-        t = '-title {!r}'.format(title)
-        s = '-subtitle {!r}'.format(subtitle)
-        # m = '-message {!r}'.format(message)
-        os.system("terminal-notifier -group 'CNST Tool Box' {} -sound default -appIcon {}/CNST.jpg".format(' '.join([t, s]),CNSTpath))
+    # if platform.system().lower() == 'darwin':
+    #     title = 'CNST NanoToolBox'
+    #     subtitle = 'Completed {} GDS'.format(cnst_name.split('.gds')[0])
+    #     # message = ERROR
+    #     # The notifier function
+    #     t = '-title {!r}'.format(title)
+    #     s = '-subtitle {!r}'.format(subtitle)
+    #     # m = '-message {!r}'.format(message)
+    #     os.system("terminal-notifier -group 'CNST Tool Box' {} -sound default -appIcon {}/CNST.jpg".format(' '.join([t, s]),CNSTpath))
