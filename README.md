@@ -39,7 +39,7 @@ If you plan on tweaking it, I recomand to add the NISTgenerator package to your 
 
 # Using the pyNISTtoolbox
 
-## Addint the NISTgenerator to you path
+## Adding the NISTgenerator to you path
 
 In case you are tweaking the package a lot, it is easier to put it in a path that is more user friendly than the standard `site-packaged` such that:
 
@@ -143,3 +143,81 @@ Blocks[1] = [
 Blocks[2] = [copy(Blocks[1][0])]
 Blocks[2][0].update(RR = 24)
 ```
+
+## Generation of the chip
+
+Several utilies are defined for the sake of simplicity to create the design and make them into a chip. Usually the standard ones are:
+
+### Logfile
+
+```python
+NISTgenerator.Utils.LogFile(GlobalParams, block, Cells, design_number=index)
+```
+
+This create a log file in the `log` folder of the working directory
+
+### Top Label
+
+```python
+NISTgenerator.ChipFeature.TopLabel(Cells, GlobalParams, block, data=label, design_number=index)
+```
+
+Create a top label for chip identification. This also create a QR code and can be disbaled
+
+### Densed ring desing for Lignetec
+
+```python
+NISTgenerator.Ring.RingPulleyWgShifted(Cells, GlobalParams, Block, design_number=index)
+```
+
+This function let you create from the a single Block list the densed version of the Ligentec layout.
+
+### Others that I will need to explain later
+
+## CNST and GDS generation
+
+The generation is split in two steps: creation of the cnst file through python, creation of the gds from the java tool box.
+
+Hence, one need to first call the
+
+```python
+CNSTpath = os.path.expanduser(<PATH WHERe IT>r"CNSTnanoToolboxV2019.05.01/cnst_script_files/")
+NISTgenerator.Builder.CreateCNST(
+        Cells["cell_type"],
+        Cells["param"],
+        "DesignFilenName",
+        yshift=Cells["YSHIFT"],
+        CNSTpath=CNSTpath,
+        top_cell_name=f"TOP",
+        xdec=GlobalParams["Wchip"] / 2,
+        ydec=GlobalParams["Hchip"],
+        res=0.005,
+    )
+```
+
+Please be adviced to change the `res` parameter accordingly to your fabrication process.
+
+This will create a `DesignFilenName.cnst` in the `cnst` folder of your working directory.
+
+To create the gds file, one would nee to use
+
+```python
+Gen.Builder.CreateGDS(
+        GlobalParams["filename"],
+        CNSTpath=CNSTpath,
+        GDSpath=r"/opt/gds_files_created/",
+        ToolBoxPath=CNSTpath.split("cnst_")[0],
+        javaVers="CNSTspecialScriptsV2019.05.01.jar",
+        removeRobCell=True,
+        dogds=True,
+        dcty=os.path.dirname(__file__),
+    )
+```
+
+Which will create a `DesignFilenName.gds` in the `gds` folder of your working directory
+
+## Generating multiple chips
+
+When many chips (let's say 44), it becomes convenient to define all the parameter in separate files, define a dictionary of block for each chip, indexed by the chip number and run a loop for the gds generation
+
+## Creating a Reticle
