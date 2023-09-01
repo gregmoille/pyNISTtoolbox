@@ -34,7 +34,7 @@ If you plan on tweaking it, I recomand to add the NISTgenerator package to your 
 
 In case you are tweaking the package a lot, it is easier to put it in a path that is more user friendly than the standard `site-packaged` such that:
 
-```
+```python
 import os, sys
 parFile = os.path.expanduser(r"/Users/greg/Documents/Nanofab/PatternDesign/")
 if not parFile in sys.path:
@@ -45,7 +45,7 @@ if not parFile in sys.path:
 
 Defining a set of parameters that are global for the chip, all parameter should be straighforward to understand. Both a `Global Parameter` and a `Cell` dictionary must be defined
 
-```
+```python
 GlobalParams = dict(
     resist="positive",
     Wchip=2500,
@@ -60,3 +60,77 @@ Cells = dict(ncell=-1, cell_type=[], param=[], YSHIFT=[])
 ```
 
 ## Defining the designs by block
+
+A single chip is defined by "Blocks", each block being looped through the parameter that are sets inside a dictionary. Every combination possible will be created with this type of nesting:
+
+- Pulley length:
+  - waveguide/ring gap:
+    - Dimer gap:
+      - Ring width:
+        - Ring radius:
+          - Bus waveguide width:
+            - PhC inner ring modulation strength:
+              - PhC ring modulation phase:
+
+(i.e. if ring width and ring radius are varried, all the different ring radii will be next to each other with a fixed RW, and the RW is steped once the variation of RR is done)
+
+Several Blocks can be defined, and they will be shifted by the parameter `top_shift` which is a loose thing to set
+
+**⚠︎All dimnesioned are in micrometers!!⚠︎**
+
+```python
+Block = [
+    dict(
+        racetrack=True,
+        heater=True,
+        RR=23,
+        Lrace=361,
+        G=np.arange(300, 600.1, 100),
+        RW=np.arange(800, 1000.1, 10),
+        W=0.460,
+        ypitch=10,
+        xpitch=165,
+        carriage_shift=20,
+        Wtapper=0.2,
+        xdec=180,
+        Label="Rtrack Lc=361 Curve Cpl - 400GHz",
+    ),
+    dict(
+        top_shift=1600,
+        racetrack=True,
+        heater=True,
+        RR=23,
+        Lrace=361,
+        G=np.arange(300, 600.1, 100),
+        RW=np.arange(1700, 2100.1, 25),
+        W=0.460,
+        ypitch=10,
+        xpitch=165,
+        carriage_shift=20,
+        Wtapper=0.32,
+        xdec=180,
+        Label="Rtrack Lc=361 Curve Cpl - 400GHz ª • 1550nm pump",
+    )
+]
+```
+
+If multiple chips needs to be made, it is convenient to wrap the each `Block` list into another dictionary, index by the chip number. FOr instance
+
+```python
+Blocks = {}
+Blocks[1] = [
+    dict(
+        RR=23,
+        G=gregArange(250, 50, 600),
+        RW=gregArange(800, 10, 920),
+        W=gregArange(360, 100, 660),
+        ypitch=9.5,
+        xpitch=85,
+        xdec=97,
+        Label="RR=23 Strg Cpl",
+    )
+]
+
+Blocks[2] = [copy(Blocks[1][0])]
+Blocks[2][0].update(RR = 24)
+```
