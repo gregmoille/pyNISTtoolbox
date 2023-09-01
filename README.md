@@ -7,6 +7,8 @@ This toolbox is made of two main component
 
 # Installing the NIST nanolithography toolbox
 
+## Setting up the java environment
+
 Here I would only discuss the UNIX way to install, it no idea how to do on Windows. Should be similar but I invite you to look at [Rob's toolbox manual](CNSTnanoToolboxV2019.05.01/CNSTNanolithographyToolboxV2016.10.01.pdf) if needed
 
 1. Download and install the version 8 of the [Java Runtime Environment](https://www.oracle.com/java/technologies/javase/javase8u211-later-archive-downloads.html).
@@ -15,6 +17,13 @@ Here I would only discuss the UNIX way to install, it no idea how to do on Windo
    - change if needed which version you are using through `sudo update-alternatives --config java`
    - You may need to reboot.
    - Open the [NIST toolbox ui](CNSTnanoToolboxV2019.05.01/CNSTspecialScriptsV2019.05.01.jar) to check if it works, usually through a command line such that `java -jar <jarFile>`
+
+## Setting up the variable for the toolbox
+
+You will have to modify the [xml file](CNSTnanoToolboxV2019.05.01/CNSTdefaultValues.xml) that defined where all the path are for the java toolbox. In particular [line 64](https://github.com/gregmoille/pyNISTtoolbox/blob/d65660f7f812bbb7bc3dde72d425e5a79359e032/CNSTnanoToolboxV2019.05.01/CNSTdefaultValues.xml#L64) to defined where the CNST is placed in your system.
+
+⚠︎ Note that [line 69](https://github.com/gregmoille/pyNISTtoolbox/blob/d65660f7f812bbb7bc3dde72d425e5a79359e032/CNSTnanoToolboxV2019.05.01/CNSTdefaultValues.xml#L69) should not be changed. It is essential to save the gds to `/opt/gds` for the python toolbox to work.
+To this extend you may want to create a folder `sudo mkdir /opt/gds` which you set the property correctly `sudo chmod 777 /opt/gds`
 
 # Installing the pyNISTtoolbox layer
 
