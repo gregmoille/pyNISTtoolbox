@@ -11,7 +11,7 @@ from copy import copy
 import re
 import warnings
 import ipdb
-import textwrap
+import textwrap3 as textwrap
 from .creategds import CreateGDS
 
 warnings.filterwarnings("ignore")
