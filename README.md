@@ -11,7 +11,7 @@ This toolbox is made of two main component
 
 Here I would only discuss the UNIX way to install, it no idea how to do on Windows. Should be similar but I invite you to look at [Rob's toolbox manual](CNSTnanoToolboxV2019.05.01/CNSTNanolithographyToolboxV2016.10.01.pdf) if needed
 
-1. Download and install the version 8 of the [Java Runtime Environment](https://www.oracle.com/java/technologies/javase/javase8u211-later-archive-downloads.html).
+1. Download and install the **Oracle** version 8 of the [Java Runtime Environment](https://www.oracle.com/java/technologies/javase/javase8u211-later-archive-downloads.html). (Note: OpenJava will not work_
 2. If you are on a Linux machine, make sure that you are indeed using this version of java
    - list all version of java install using `update-java-alternatives --list`
    - change if needed which version you are using through `sudo update-alternatives --config java`
