@@ -3,7 +3,11 @@
 This toolbox is made of two main component
 
 1. The NIST Lithography toolbox made by Rob Illic at NIST and using a java backend for easy creation of primitive or polygons into gds. **That is pretty much working for sure and refer to the [Rob's tool page](https://www.nist.gov/services-resources/software/cnst-nanolithography-toolbox) for more information**
-2. A python layer created by me for very easy user interfacing to generated dense layout of differnet microring resonator. Well, here that's my contribution, and it may or may not work perfectly but so far it works sufficiently good enough. 
+2. A python layer created by me for very easy user interfacing to generated dense layout of differnet microring resonator. Well, here that's my contribution, and it may or may not work perfectly but so far it works sufficiently good enough.
+
+I so not plan on creating new functionallity based on the community needed. Instead, I am sharing what I have developed throughout the years and used regularly for my own designs. Reach out if needed but I provide very limited support.
+
+**In the idea of sharing with the community, if you create new functionality, create a pull requests please**
 
 # Installing the NIST nanolithography toolbox
 
