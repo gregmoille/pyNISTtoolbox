@@ -12,6 +12,7 @@ def Bezier(t, p0, p1, p2, p3):
 
 def CreateThroughPortCurveS(fid, param, ncell, cnt_out):
     Name = param.get("name", None)
+    cnt_shift = param.get("cnt_shift", 0)
     layer = param.get("layer", None)
     layerWg = param.get("layerWg", layer)
     layerTapper = param.get("layerTapper", layer)
@@ -21,13 +22,14 @@ def CreateThroughPortCurveS(fid, param, ncell, cnt_out):
     RW = param.get("RW", None)
     G = param.get("G", None)
     Drop = param.get("Drop", False)
+    S_in_shift = param.get("S_in_shift", 0)
     y_drop = param.get("y_drop", False)
     Gdrop = param.get("Grop", None)
     Wdrop = param.get("Wdrop", None)
     out_sep = param.get("out_sep", 5)
-    x_shift= param.get("x_shift", None)
-    Gdimer= param.get("Gdimer", None)
-
+    x_shift = param.get("x_shift", None)
+    Gdimer = param.get("Gdimer", None)
+    through_align = param.get("through_align", True)
     x0 = param.get("x0", None)
     y0 = param.get("y0", None)
     resist = param.get("resist", "positive")
@@ -351,6 +353,10 @@ def CreateThroughPortCurveS(fid, param, ncell, cnt_out):
         wvg_type = "waveguide"
 
         #  -- Create the left cap- --
+        if not through_align and racetrack:
+            ywg_shift = yin_c - y_thrgh
+        else:
+            ywg_shift = 0
         if cap:
             x1_in_cap = x1_in_lin - input_inv_taper_st_length
             name_out.append(Name + "InCapSt" + "Cell" + str(ncell) + "_" + str(cnt_out))
@@ -366,8 +372,8 @@ def CreateThroughPortCurveS(fid, param, ncell, cnt_out):
                 + " struct>\n"
             )
             fid.write(
-                "\t<{} {} ".format(x1_in_cap, y_thrgh)
-                + "{} {} ".format(x1_in_lin, y_thrgh)
+                "\t<{} {} ".format(x1_in_cap, y_thrgh + ywg_shift)
+                + "{} {} ".format(x1_in_lin, y_thrgh + ywg_shift)
                 + "{} ".format(input_inv_taper_W)
                 + "0 1 0 {}>\n".format(wvg_type)
             )
@@ -383,15 +389,17 @@ def CreateThroughPortCurveS(fid, param, ncell, cnt_out):
             #  -- small surplus for cuting --
             if input_surplus_taper > 0:
                 fid.write(
-                    "\t<{} {} ".format(x1_in_lin - input_surplus_taper, y_thrgh)
-                    + "{} {} ".format(x1_in_lin, y_thrgh)
+                    "\t<{} {} ".format(
+                        x1_in_lin - input_surplus_taper, y_thrgh + ywg_shift
+                    )
+                    + "{} {} ".format(x1_in_lin, y_thrgh + ywg_shift)
                     + "{} ".format(input_inv_taper_W)
                     + "0 0 0 {}>\n".format(wvg_type)
                 )
 
             fid.write(
-                "\t<{:.3f} {:.3f} ".format(x1_in_lin, y_thrgh)
-                + "{:.3f} {:.3f} ".format(x2_in_lin, y_thrgh)
+                "\t<{:.3f} {:.3f} ".format(x1_in_lin, y_thrgh + ywg_shift)
+                + "{:.3f} {:.3f} ".format(x2_in_lin, y_thrgh + ywg_shift)
                 + "{:.3f} {:.3f} ".format(Ws1_in_lin, Ws2_in_lin)
                 + "0 linearTaper>\n"
             )
@@ -477,8 +485,8 @@ def CreateThroughPortCurveS(fid, param, ncell, cnt_out):
             shiftS = 5
 
         fid.write(
-            "\t<{:.3f} {:.3f} ".format(x2_in_lin + shiftS, y_thrgh)
-            + "{:.3f} {:.3f} ".format(x2_in_wg, y_thrgh)
+            "\t<{:.3f} {:.3f} ".format(x2_in_lin + shiftS, y_thrgh + ywg_shift)
+            + "{:.3f} {:.3f} ".format(x2_in_wg, y_thrgh + ywg_shift)
             + "{:.3f} ".format(W)
             + "0 0 0 {}>\n".format(wvg_type)
         )
@@ -495,31 +503,43 @@ def CreateThroughPortCurveS(fid, param, ncell, cnt_out):
             + str(cnt_out)
             + " struct>\n"
         )
-        fid.write(
-            "\t<{:.3f} {:.3f} ".format(x2_in_wg, y_thrgh)
-            + "{:.3f} {:.3f} ".format(xin_c, yin_c)
-            + "{:.3f} {} ".format(W, 0)
-            + "sBend>\n"
-        )
+        if through_align:
+            offset = (RR - 23) * (cnt_shift - 1) * 0.1
+            if RR <= 23:
+                offset = 0
 
-        name_out.append(Name + "InWgC1_" + "Cell" + str(ncell) + "_" + str(cnt_out))
-        fid.write(str(layerWg) + " layer\n")
-        fid.write(
-            "<"
-            + Name
-            + "InWgC1_"
-            + "Cell"
-            + str(ncell)
-            + "_"
-            + str(cnt_out)
-            + " struct>\n"
-        )
-        fid.write(
-            "\t<{:.3f} {:.3f} ".format(xin_c, yin_c)
-            + "{:.3f} {:.3f} ".format(x_sleft_out, yin_c)
-            + "{:.3f} ".format(W)
-            + "0 0 0 {}>\n".format(wvg_type)
-        )
+            fid.write(
+                f"\t<{x2_in_wg:.3f} {y_thrgh:.3f} "
+                + f"{xin_c + S_in_shift - offset:.3f} {yin_c:.3f} "
+                + f"{W:.3f} 0 sBend>\n"
+            )
+            if not racetrack:
+                if offset > 0 or np.abs(S_in_shift) > 0:
+                    fid.write(
+                        f"\t<{xin_c + S_in_shift - offset:.3f} {yin_c:.3f} "
+                        + f"{xin_c:.3f} {yin_c:.3f} "
+                        + f"{W:.3f} 0 0 0 waveguide>\n"
+                    )
+
+            name_out.append(Name + "InWgC1_" + "Cell" + str(ncell) + "_" + str(cnt_out))
+            fid.write(str(layerWg) + " layer\n")
+            fid.write(
+                "<"
+                + Name
+                + "InWgC1_"
+                + "Cell"
+                + str(ncell)
+                + "_"
+                + str(cnt_out)
+                + " struct>\n"
+            )
+            if not racetrack:
+                fid.write(
+                    "\t<{:.3f} {:.3f} ".format(xin_c, yin_c)
+                    + "{:.3f} {:.3f} ".format(x_sleft_out, yin_c)
+                    + "{:.3f} ".format(W)
+                    + "0 0 0 {}>\n".format(wvg_type)
+                )
 
         # -- Create Right waveguide --
         W_in_wg = W
@@ -527,48 +547,72 @@ def CreateThroughPortCurveS(fid, param, ncell, cnt_out):
 
         if x1_out_wg is None:
             if racetrack:
+                R90 = 15
+                y_cpl_def = (WG_through_port_y_pos - yin_c) - R90
+                # R90 = WG_through_port_y_pos - 5 - yin_c
+                # print(R90)
+
                 xcpl = param.get("xcpl", None)
                 fid.write(
-                    f"\t<{xcpl:.3f} {WG_through_port_y_pos-5:.3f} "
-                    + f"{xcpl:.3f} {WG_through_port_y_pos+ RR - 15:3f} "
+                    f"\t<{xcpl:.3f} {WG_through_port_y_pos-y_cpl_def:.3f} "
+                    + f"{xcpl:.3f} {WG_through_port_y_pos+ RR - 12:3f} "
                     + f"{W:.3f} "
                     + "0 0 0 waveguide>\n"
                 )
-
+                if through_align:
+                    fid.write(
+                        f"\t<{xin_c+ S_in_shift:.3f} {yin_c:.3f} "
+                        + f"{xcpl-R90:.3f} {yin_c:.3f} "
+                        + f"{W:.3f} "
+                        + f"0 0 0 waveguide>\n"
+                    )
+                else:
+                    fid.write(
+                        f"\t<{x2_in_lin:.3f} {yin_c:.3f} "
+                        + f"{xcpl-R90:.3f} {yin_c:.3f} "
+                        + f"{W:.3f} "
+                        + f"0 0 0 waveguide>\n"
+                    )
                 fid.write(
-                    f"\t<{x_sleft_out:.3f} {yin_c:.3f} "
-                    + f"{xcpl:.3f} {WG_through_port_y_pos-5:3f} "
+                    f"\t<{xcpl-R90:.3f} {yin_c:.3f} "
+                    + f"{xcpl:.3f} {WG_through_port_y_pos-y_cpl_def:3f} "
                     + f"{W:.3f} "
                     + "0 90degreeBend>\n"
                 )
 
                 fid.write(
-                    f"\t<{xcpl:.3f} {WG_through_port_y_pos +  RR - 15:3f} "
+                    f"\t<{xcpl:.3f} {WG_through_port_y_pos +  RR - 12:3f} "
                     + f"{-20:.3f} {20:3f} "
                     + f"{W:.3f} "
                     + "-90 90degreeBendLH>\n"
                 )
 
-                fid.write(
-                    f"\t<{xcpl + 20:.3f} {WG_through_port_y_pos+ RR +5:.3f} "
-                    + f"{tot_length/2 - input_inv_taper_length - 60:.3f} {WG_through_port_y_pos+ RR +5:3f} "
-                    + f"{W:.3f} "
-                    + "0 0 0 waveguide>\n"
-                )
-
-                fid.write(
-                    f"\t<{xcpl + 20:.3f} {WG_through_port_y_pos+ RR +5:.3f} "
-                    + f"{tot_length/2 - input_inv_taper_length - 60:.3f} {WG_through_port_y_pos+ RR +5:3f} "
-                    + f"{W:.3f} "
-                    + "0 0 0 waveguide>\n"
-                )
-
-                fid.write(
-                    f"\t<{tot_length/2 - input_inv_taper_length - 60:.3f} {WG_through_port_y_pos+ RR +5:3f} "
-                    + f"{tot_length/2 - input_inv_taper_length} {WG_through_port_y_pos} "
-                    + "{:.3f} {} ".format(W, 0)
-                    + "sBend>\n"
-                )
+                # fid.write(
+                #     f"\t<{xcpl + 20:.3f} {WG_through_port_y_pos+ RR +8:.3f} "
+                #     + f"{tot_length/2 - input_inv_taper_length - 60 - S_in_shift:.3f} {WG_through_port_y_pos+ RR +8:3f} "
+                #     + f"{W:.3f} "
+                #     + "0 0 0 waveguide>\n"
+                # )
+                if through_align:
+                    fid.write(
+                        f"\t<{xcpl + 20:.3f} {WG_through_port_y_pos+ RR +8:.3f} "
+                        + f"{tot_length/2 - input_inv_taper_length - 60- S_in_shift:.3f} {WG_through_port_y_pos+ RR +8:3f} "
+                        + f"{W:.3f} "
+                        + "0 0 0 waveguide>\n"
+                    )
+                    fid.write(
+                        f"\t<{tot_length/2 - input_inv_taper_length - 60 - S_in_shift:.3f} {WG_through_port_y_pos+ RR +8:3f} "
+                        + f"{tot_length/2 - input_inv_taper_length} {WG_through_port_y_pos} "
+                        + "{:.3f} {} ".format(W, 0)
+                        + "sBend>\n"
+                    )
+                else:
+                    fid.write(
+                        f"\t<{xcpl + 20:.3f} {WG_through_port_y_pos+ RR +8:.3f} "
+                        + f"{tot_length/2 - input_inv_taper_length:.3f} {WG_through_port_y_pos+ RR +8:3f} "
+                        + f"{W:.3f} "
+                        + "0 0 0 waveguide>\n"
+                    )
 
         else:
             if not angled_facets:
@@ -594,6 +638,10 @@ def CreateThroughPortCurveS(fid, param, ncell, cnt_out):
                 + "0 0 0 {}>\n".format(wvg_type)
             )
         if angled_facets is None:
+            if racetrack and not through_align:
+                ywg_shift = WG_through_port_y_pos + RR + 8 - y_thrgh
+            else:
+                ywg_shift = 0
             # -- Create the output linear tapper --
             W1_in_lin = output_inv_taper_W + 2 * exp_w
             W2_in_lin = W + 2 * exp_w
@@ -612,8 +660,8 @@ def CreateThroughPortCurveS(fid, param, ncell, cnt_out):
                 + " struct>\n"
             )
             fid.write(
-                "<{:.3f} {:.3f} ".format(x1_out_lin, y_thrgh)
-                + "{:.3f} {:.3f} ".format(x2_out_lin, y_thrgh)
+                "<{:.3f} {:.3f} ".format(x1_out_lin, y_thrgh + ywg_shift)
+                + "{:.3f} {:.3f} ".format(x2_out_lin, y_thrgh + ywg_shift)
                 + "{:.3f} {:.3f} ".format(Ws2_in_lin, Ws1_in_lin)
                 + "0 linearTaper>\n"
             )
@@ -639,8 +687,8 @@ def CreateThroughPortCurveS(fid, param, ncell, cnt_out):
                     + " struct>\n"
                 )
                 fid.write(
-                    "<{:.3f} {:.3f} ".format(x2_out_lin, y_thrgh)
-                    + "{:.3f} {:.3f} ".format(x2_out_cap, y_thrgh)
+                    "<{:.3f} {:.3f} ".format(x2_out_lin, y_thrgh + ywg_shift)
+                    + "{:.3f} {:.3f} ".format(x2_out_cap, y_thrgh + ywg_shift)
                     + "{:.3f} ".format(output_inv_taper_W)
                     + "0 0 1 {}>\n".format(wvg_type)
                 )
@@ -648,9 +696,9 @@ def CreateThroughPortCurveS(fid, param, ncell, cnt_out):
             #  -- small surplus for cuting --
             if output_surplus_taper > 0:
                 fid.write(
-                    "\t<{:.3f} {:.3f} ".format(x2_out_lin, y_thrgh)
+                    "\t<{:.3f} {:.3f} ".format(x2_out_lin, y_thrgh + ywg_shift)
                     + "{:.3f} {:.3f} ".format(
-                        x2_out_lin + output_surplus_taper, y_thrgh
+                        x2_out_lin + output_surplus_taper, y_thrgh + ywg_shift
                     )
                     + "{:.3f} ".format(output_inv_taper_W)
                     + "0 0 0 {}>\n".format(wvg_type)
@@ -741,7 +789,7 @@ def CreateThroughPortCurveS(fid, param, ncell, cnt_out):
                     + f"{W:.3f} {0} "
                     + "sBend>\n"
                 )
-                
+
                 fid.write(
                     f"\t<{x1_out_wg - RR/2 - 23:.3f} {y_drop + 23:3f} "
                     + f"{-R90/2:.3f} {-R90/2:3f} "
@@ -769,7 +817,7 @@ def CreateThroughPortCurveS(fid, param, ncell, cnt_out):
                     + f"{W:.3f} {0} "
                     + "sBendLH>\n"
                 )
-            else: 
+            else:
                 fid.write(
                     f"<{x1_out_wg + 10:.3f} {y_drop:.3f} "
                     + f"{x1_out_wg_back:.3f} {y_drop:.3f} "
@@ -784,8 +832,6 @@ def CreateThroughPortCurveS(fid, param, ncell, cnt_out):
                     + f"{W:.3f} {0} "
                     + "sBendLH>\n"
                 )
-                
-            
 
             fid.write(
                 f"<{x1_out_wg_back  +(x_shift - 2*RR):.3f} {y_thrgh - out_sep:.3f} "

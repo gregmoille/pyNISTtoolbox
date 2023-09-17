@@ -1,6 +1,6 @@
 from copy import copy
 from pickle import FALSE
-
+import math
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.integrate as itg
@@ -10,7 +10,7 @@ from scipy.special import fresnel
 from shapely.geometry import Polygon
 
 
-def getEuler(R0=10, num_points=10000, theta=np.pi / 2):
+def getEuler(R0=20, num_points=10000, theta=np.pi / 2):
     # compute the path length
     Radjust = 2 * R0  # adjust the scaling due to the fresnel definition in scipy
     L = Radjust * theta  # HALF of total length
@@ -19,10 +19,11 @@ def getEuler(R0=10, num_points=10000, theta=np.pi / 2):
     y, x = fresnel(s / f)
     y, x = f * y, f * x
     return x, y, s
+    # return np.concatenate([x, np.flip(x)]), np.concatenate([y, -np.flip(y)+2*y[-1]]), s
 
 
 def getCircle(R0=20, num_points=10000):
-    angle = np.linspace(3 * np.pi / 2, 2 * np.pi, int(num_points / 2))
+    angle = np.linspace(3 * math.pi / 2, 2 * math.pi, int(num_points / 2))
     x2 = R0 * np.cos(angle) + R0
     y2 = R0 * np.sin(angle)
     return x2, y2
@@ -57,6 +58,56 @@ def getBezier(
             + (ts[i] ** 3) * p3[1]
         )
     return bx, by
+
+
+def getOptimal(R0=20, num_points=10000, RW=1.4, RW_optim=True):
+    send = 50.26781151
+    b = 17.23865808
+    s = np.linspace(0, send, num_points)
+    invR = (2 / R0) / (1 + np.e ** (-s / b)) - 1 / (R0)
+    invR = invR * 1 / R0 / invR[-1]
+    R = 1 / invR[1:]
+    Δs = s[1]
+    RW_v = -RW * np.ones(R.size)
+    if RW_optim:
+        newRW = R * (1 - math.e ** (RW_v / R))
+    else:
+        newRW = RW * np.ones(R.size)
+
+    theta = Δs / R
+    x = np.zeros(R.size + 1)
+    y = np.zeros(R.size + 1)
+    for i in range(2, x.size):
+        x[i] = (
+            x[i - 1]
+            + R[i - 1] * math.sin(np.sum(theta[:i]))
+            - R[i - 1] * math.sin(np.sum(theta[: i - 1]))
+        )
+        y[i] = (
+            y[i - 1]
+            + R[i - 1] * (1 - math.cos(np.sum(theta[:i])))
+            - R[i - 1] * (1 - math.cos(np.sum(theta[: i - 1])))
+        )
+
+    return x[1:], y[1:], newRW
+
+
+def getTaper(x, y, RW):
+    ind, Δs = slicePath(x, y, x.size)
+    dydx = np.gradient(y) / np.gradient(x)
+    d2ydx2 = np.gradient(dydx) / np.gradient(x)
+    R = ((1 + dydx**2) ** (3 / 2)) / (d2ydx2)
+    ind_avg = np.vstack([ind[:-1], ind[1::]]).T
+    Ravg = np.array([R[ii[0] : ii[-1] + 1].mean() for ii in ind_avg])
+
+    xfit = np.arange(Ravg.size)
+    tofit = np.poly1d(np.polyfit(xfit, 1 / Ravg, 6))
+    Ravg = 1 / tofit(xfit)
+    RW_v = -RW * np.ones(Ravg.size)
+    newRW = Ravg * (1 - np.exp(RW_v / Ravg))
+    newRW = np.concatenate([[RW], newRW])
+
+    return newRW
 
 
 def getPathLength(x, y):
@@ -140,6 +191,7 @@ def getPoints(length, width, func, **kwargs):
     pts = kwargs.get("num_points", 100000)
     tap = kwargs.get("tapering", False)
     Wmet = kwargs.get("Wmet", 2)
+    RW_optim = kwargs.get("RW_optim", False)
 
     # steps = int(pt0)
 
@@ -155,30 +207,28 @@ def getPoints(length, width, func, **kwargs):
         x, y = getBezier(R0=R0, num_points=pts)  # only coded for R0 = 20
         y = y - y[-1]
     elif func == "Optimal":
-        pass
+        x, y, newRW = getOptimal(R0=R0, num_points=pts, RW=RW, RW_optim = RW_optim)
+        y = y - y[-1]
 
     scale = width / 2 / (-y[0])  # scale width of racetrack to fit in boxx
     x = scale * x
     y = scale * y
 
-    if tap:
-        if func == "Optimal":
-            pass
-        else:
-            ind, Δs = slicePath(x, y, x.size)
-            dydx = np.gradient(y) / np.gradient(x)
-            d2ydx2 = np.gradient(dydx) / np.gradient(x)
-            R = ((1 + dydx**2) ** (3 / 2)) / (d2ydx2)
-            ind_avg = np.vstack([ind[:-1], ind[1::]]).T
-            Ravg = np.array([R[ii[0] : ii[-1] + 1].mean() for ii in ind_avg])
+    if tap and func != "Optimal":
+        ind, Δs = slicePath(x, y, x.size)
+        dydx = np.gradient(y) / np.gradient(x)
+        d2ydx2 = np.gradient(dydx) / np.gradient(x)
+        R = ((1 + dydx**2) ** (3 / 2)) / (d2ydx2)
+        ind_avg = np.vstack([ind[:-1], ind[1::]]).T
+        Ravg = np.array([R[ii[0] : ii[-1] + 1].mean() for ii in ind_avg])
 
-            xfit = np.arange(Ravg.size)
-            tofit = np.poly1d(np.polyfit(xfit, 1 / Ravg, 6))
-            Ravg = 1 / tofit(xfit)
-            RW_v = -RW * np.ones(Ravg.size)
-            newRW = Ravg * (1 - np.exp(RW_v / Ravg))
-            newRW = np.concatenate([[RW], newRW])
-    else:
+        xfit = np.arange(Ravg.size)
+        tofit = np.poly1d(np.polyfit(xfit, 1 / Ravg, 6))
+        Ravg = 1 / tofit(xfit)
+        RW_v = -RW * np.ones(Ravg.size)
+        newRW = Ravg * (1 - np.exp(RW_v / Ravg))
+        newRW = np.concatenate([[RW], newRW])
+    elif func != "Optimal":
         newRW = RW * np.ones(x.size)
 
     # -- Connect path --
@@ -258,6 +308,7 @@ def GenerateRaceTrackChristy(fid, param, ncell, cnt_out):
     RWtaper = param.get("RWtaper")
     y0 = param.get("y0")
     x0 = param.get("x0")
+    RW_optim = param.get("RW_optim", False)
 
     left_coupling = param.get("left_coupling", False)
 
@@ -274,7 +325,14 @@ def GenerateRaceTrackChristy(fid, param, ncell, cnt_out):
     yshift = param.get("yshift", 0)
 
     xy_center, xytot, xymet, _, _, _ = getPoints(
-        Ltot, 2 * R0, trck_type, RW=W, R0=R0, num_points=200, tapering=RWtaper
+        Ltot,
+        2 * R0,
+        trck_type,
+        RW=W,
+        R0=R0,
+        num_points=200,
+        tapering=RWtaper,
+        RW_optim=RW_optim,
     )
 
     xtot = xytot[:, 0]
@@ -318,9 +376,9 @@ def GenerateRaceTrackChristy(fid, param, ncell, cnt_out):
             fid.write(
                 f"\t<{x0cpl-Lstart_left} {y0cpl+ y0} {x0cpl} {y0cpl+ y0} {Wwg} 0 0 0 waveguide>\n"
             )
-            fid.write(
-                f"\t<{x0cpl} {y0cpl+ y0} {x1cpl} {y1cpl+ y0} {Wwg} 0 90degreeBend>\n"
-            )
+            # fid.write(
+            #     f"\t<{x0cpl} {y0cpl+ y0} {x1cpl} {y1cpl+ y0} {Wwg} 0 90degreeBend>\n"
+            # )
             fid.write(
                 f"\t<{x1cpl} {y1cpl+ y0} {x1cpl} {y1cpl-12+ y0} {Wwg} 0 0 0 waveguide>\n"
             )

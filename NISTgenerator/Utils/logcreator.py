@@ -7,7 +7,7 @@ from datetime import date
 
 
 def PrintMyBloc(key, val, lines, linesqr):
-
+    global Ndevices
     notLog = ["ypitch", "xpitch", "yrace_shift", "carriage_shift", "xdec"]
 
     if not key in notLog:
@@ -19,6 +19,7 @@ def PrintMyBloc(key, val, lines, linesqr):
             lines += [f"\t- {key}: {txt}µm"]
         else:
             if type(val) is list:
+                Ndevices *= len(val)
                 txt = f"{val[0]}µm → {val[1] - val[0]:.3g} µm step → {val[-1]}µm"
                 lines += [f"\t- {key}: {txt}"]
             else:
@@ -33,6 +34,7 @@ def PrintMyBloc(key, val, lines, linesqr):
 
 
 def LogFile(param, Bloc, Cells=None, design_number=None):
+    global Ndevices
     mdfile = f'{param["pyfile"].replace(".py", "")}.md'
     if "LogPath" in param.keys():
         mdfile = os.path.join(param["LogPath"], os.path.basename(mdfile))
@@ -41,13 +43,11 @@ def LogFile(param, Bloc, Cells=None, design_number=None):
     lines = []
     today = date.today()
     linesqr = [f'G. MOILLE {today.strftime("%d.%m.%Y")}']
-    # with open(mdfile, 'w') as fid:
 
     lines += [f'## Chip: {param["filename"]}\n']
     for nn, BB in enumerate(Bloc):
         lines += [f'**Block {nn}: {BB["Label"]}**\n']
-        # if 'Label' in BB.keys():
-        #     PrintMyBloc('Label', BB['Label'], fid)
+        Ndevices = 1
         for key, val in BB.items():
             if not key == "Label":
                 if nn > 0:
@@ -62,8 +62,7 @@ def LogFile(param, Bloc, Cells=None, design_number=None):
                         PrintMyBloc(key, val, lines, linesqr)
                 else:
                     PrintMyBloc(key, val, lines, linesqr)
-        # fid.write(f'\n')
-
+    lines += [f"\t- N devices = {Ndevices:.0f}"]
     if Cells:
         # q = qrcode.QRCode()
 
@@ -84,7 +83,7 @@ def LogFile(param, Bloc, Cells=None, design_number=None):
             datatype=Bloc[0].get("datatype", 0),
             design_number=design_number,
             codeType="QR",
-            xdec=(param['Wchip']/2 - 275),#675,
+            xdec=(param["Wchip"] / 2 - 275),  # 675,
             y0=0,
         )
         Cells["cell_type"].append("Gen.Misc.QrCodeMaker")
@@ -92,7 +91,7 @@ def LogFile(param, Bloc, Cells=None, design_number=None):
         Cells["param"].append(Qrcode_param)
 
         Qrcode_param2 = copy(Qrcode_param)
-        Qrcode_param2.update(xdec=-(param['Wchip']/2 - 170))#-780)
+        Qrcode_param2.update(xdec=-(param["Wchip"] / 2 - 170))  # -780)
         Qrcode_param2["codeType"] = "QRleft"
         Cells["cell_type"].append("Gen.Misc.QrCodeMaker")
         Cells["YSHIFT"].append(-5)

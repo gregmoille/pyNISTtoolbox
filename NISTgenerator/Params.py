@@ -26,7 +26,10 @@ if platform.node() == "ra.local":
         r"/Users/greg/Gdrive/NanoFab/NIST/CNSTnanoToolboxV2019.05.01/cnst_script_files/"
     )
     GDSpath = r"/Users/greg/gds_files_created"
-if platform.node() == "horus" or platform.node() == "pegasus":
+if (
+    platform.node() == "horus"
+    or platform.node() == "pegasus"
+):
     # NISTgeneratorPath = '/Volumes/AmunDrive/Nanofab'
     NISTgeneratorPath = os.path.expanduser(r"~/AmunMount/NanoFab")
     CNSTpath = os.path.expanduser(
@@ -34,12 +37,12 @@ if platform.node() == "horus" or platform.node() == "pegasus":
     )
     GDSpath = r"/opt/gds_files_created/"
 
-if platform.node() == "hephaistos.local":
+if  platform.node() == "hephaistos.local":
     NISTgeneratorPath = os.path.expanduser(r"~/Documents/Nanofab")
     CNSTpath = os.path.expanduser(
         r"~/Documents/Nanofab/NIST/CNSTnanoToolboxV2019.05.01/cnst_script_files/"
     )
-    GDSpath = r"/opt/gds_files_created/"
+    GDSpath = r"/opt/gds_files_created/")
 
 if not NISTgeneratorPath in sys.path:
     sys.path.insert(-1, NISTgeneratorPath)

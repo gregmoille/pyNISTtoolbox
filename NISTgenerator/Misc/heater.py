@@ -475,6 +475,77 @@ def LigentecHeater(fid, param, ncell, cnt_out):
                 + "points2shape\n"
             )
 
+        if pad_loc == "left":
+            fid.write(str(33) + " layer\n")
+            fid.write(str(0) + " dataType\n")
+            rmet1 = np.sqrt((r_rwc + Wvia / 2) ** 2 + via_shift**2)
+            th1 = theta_heat - np.arctan(via_shift / (r_rwc + Wvia / 2))
+            y_pad = y_pos + sign * (Wpad / 2 + 35)
+            r_met_diff = rr - 20
+            theta_corner = np.arccos((y_pad - y_pos + sign * (Wpad / 2)) / r_met_diff)
+            if ~np.isnan(theta_corner):
+
+                y_pad = y_pos + sign * (Wpad / 2 + 35)
+                x_pad = x_pos + r_met_diff * np.sin(theta_corner) - Wpad / 2
+
+                if x_pad + Wpad / 2 > x_pos + rr - 20:
+                    print(x_pad)
+                    x_pad = x_pos + rr - 15 - Wpad / 2
+            else:
+                x_pad = x_pos + rr - 12.5
+            fid.write(
+                f"{x_pad +  - Wopen/2:.3f} {y_pad - Wopen/2:.3f} "
+                + f"{x_pad - Wopen/2:.3f} {y_pad + Wopen/2:.3f} "
+                + f"{x_pad + Wopen/2:.3f} {y_pad + Wopen/2:.3f} "
+                + f"{x_pad + Wopen/2:.3f} {y_pad - Wopen/2:.3f} "
+                + "points2shape\n"
+            )
+            fid.write(str(32) + " layer\n")
+            fid.write(str(0) + " dataType\n")
+
+            fid.write(
+                f"{x_pad  - Wpad/2:.3f} {y_pad - Wpad/2:.3f} "
+                + f"{x_pad - Wpad/2:.3f} {y_pad + Wpad/2:.3f} "
+                + f"{x_pad + Wpad/2:.3f} {y_pad + Wpad/2:.3f} "
+                + f"{x_pad + Wpad/2:.3f} {y_pad - Wpad/2:.3f} "
+                + "points2shape\n"
+            )
+
+            pad_dist = -(x_pad - x3_p1p)
+            Wmet_rout = np.abs(y3_p1p - y4_p1p)
+
+            fid.write(
+                f"{x_pad + Wpad/2:.3f} {y_pad - sign * Wpad/2:.3f} "
+                + f"{x_pad + Wmet_rout/2:.3f} {y4_p1p + sign*(Wmet_rout/2 + 5):.3f} "
+                + f"{x_pad - Wmet_rout/2:.3f} {y4_p1p + sign*(Wmet_rout/2 + 5):.3f} "
+                + f"{x_pad - Wpad/2:.3f} {y_pad - sign* Wpad/2:.3f} "
+                + "points2shape\n"
+            )
+
+            fid.write(
+                f"{x_pad + Wmet_rout/2:.3f} {y4_p1p + sign*Wmet_rout/2:.3f} "
+                + f"{x_pad + Wmet_rout/2:.3f} {y4_p1p + sign*(Wmet_rout/2 + 5):.3f} "
+                + f"{x_pad - Wmet_rout/2:.3f} {y4_p1p + sign*(Wmet_rout/2 + 5):.3f} "
+                + f"{x_pad - Wmet_rout/2:.3f} {y4_p1p + sign*Wmet_rout/2:.3f} "
+                + "points2shape\n"
+            )
+
+            fid.write(
+                f"{x_pad + Wmet_rout:.3f} {y3_p1p:.3f} "
+                + f"{x_pad - Wmet_rout/2:.3f} {y4_p1p + sign*Wmet_rout/2:.3f} "
+                + f"{x_pad + Wmet_rout/2:.3f} {y4_p1p + sign*Wmet_rout/2:.3f} "
+                + f"{x_pad + Wmet_rout:.3f} {y4_p1p:.3f} "
+                + "points2shape\n"
+            )
+
+            fid.write(
+                f"{x3_p1p:.3f} {y3_p1p:.3f} "
+                + f"{x_pad + Wmet_rout:.3f} {y3_p1p:.3f} "
+                + f"{x_pad + Wmet_rout:.3f} {y4_p1p:.3f} "
+                + f"{x4_p1p:.3f} {y4_p1p:.3f} "
+                + "points2shape\n"
+            )
+
         elif pad_loc == "top":
             # for sign, th in zip([+1, -1], [theta_heat, rot * np.pi / 180]):
             fid.write(str(33) + " layer\n")
@@ -818,8 +889,8 @@ def LigentecHeaterRaceTrack(fid, param, ncell, cnt_out):
         # ==============================
         fid.write(str(33) + " layer\n")
         fid.write(str(0) + " dataType\n")
-        xpad = xvia - ii * 35
-        y_pad = y0 + 25
+        xpad = xvia - ii * 45
+        y_pad = y0 + Wpad / 2 + 15
         fid.write(
             f"{xpad - Wopen/2:.3f} {y_pad - Wopen/2:.3f} "
             + f"{xpad - Wopen/2:.3f} {y_pad + Wopen/2:.3f} "

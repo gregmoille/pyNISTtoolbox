@@ -38,10 +38,12 @@ def CreateRaceTrackThroughShifted(fid, param, ncell):
     # -- Racetrack Parameters --
     W = param.get("W", None)
     G = param.get("G", None)
+    trck_type = param.get("trck_type", "Euler")
     Lrace = param.get("Lrace", None)
     Lc = param.get("Lc", None)
     RR = param.get("RR", None)
     RW = param.get("RW", None)
+    RW_optim = param.get("RW_optim", False)
     p = param.get("p", 0.3553535)
     circle_coupling = param.get("circle_coupling", False)
     αc0 = param.get("alpha_connect", np.pi / 3)
@@ -127,7 +129,7 @@ def CreateRaceTrackThroughShifted(fid, param, ncell):
                 name_out = []
 
                 # Create the First Through port
-                αc = αc0
+
                 Ls = inp_WG_L  #
                 xstart = tot_length / 2
                 input_st_length = xstart - input_inv_taper_length - Ls
@@ -137,39 +139,46 @@ def CreateRaceTrackThroughShifted(fid, param, ncell):
                 Rdec = rext
 
                 x_pos0 = xdec - Ls - input_st_length
-                cx1 = 0
-
-                x_pos0 = xdec - Ls - input_st_length
-                cx1 = 0
-
-                x_pos = x_shift * cnt_shift + x_pos0  # - (cx1 - 3*RR)
-                xpos1 = x_shift + x_pos0 - (cx1 - 3 * RR)
-
                 x_left = x0 - inp_WG_L - input_st_length
+
+                # cx1 = 0
+
+                if x_shift is np.inf:
+                    x_pos = x_pos0
+                    through_align = False
+
+                else:
+                    through_align = True
+                    x_pos = x_shift * cnt_shift + x_pos0  # - (cx1 - 3*RR)
+                    # xpos1 = x_shift + x_pos0 - (cx1 - 3 * RR)
+
+                    # x_left = x0 - inp_WG_L - input_st_length
+                    # x_sleft_out = x_pos - x_shift + (Lrace - 2 * np.pi * RR) / 3
+                    x_right = x_pos + (Lrace - 2 * np.pi * RR) / 4 + 5
+
+                    if x_right > tot_length / 2 - input_inv_taper_length:
+                        # cx1 = 0
+                        y_pos = y_pos - 2 * RR - carriage_shift
+                        WG_through_port_y_pos = y_pos
+                        cnt_shift = 0
+                        x_pos = x_shift * cnt_shift + x_pos0
+                        # xpos1 = x_shift + x_pos0 - (cx1 - 3 * RR)
+                        # x_left = x0 - inp_WG_L - input_st_length
+                        # x_sleft_out = x_pos - x_shift + (Lrace - 2 * np.pi * RR) / 3
+                        x_right = x_pos + lc / 2 + 25
                 x_sleft_out = x_pos - x_shift + (Lrace - 2 * np.pi * RR) / 3
-                x_right = x_pos + (Lrace - 2 * np.pi * RR) / 4 + 5
-
-                if x_right > tot_length / 2 - input_inv_taper_length:
-                    cx1 = 0
-                    y_pos = y_pos - 2 * RR - carriage_shift
-                    WG_through_port_y_pos = y_pos
-                    cnt_shift = 0
-                    x_pos = x_shift * cnt_shift + x_pos0
-                    xpos1 = x_shift + x_pos0 - (cx1 - 3 * RR)
-                    x_left = x0 - inp_WG_L - input_st_length
-                    x_sleft_out = x_pos - x_shift + (Lrace - 2 * np.pi * RR) / 3
-                    x_right = x_pos + lc / 2 + 25
-
                 # -- Create the Racetrack
                 params_track["G"] = g
                 params_track["Lc"] = lc
                 params_track["RW"] = rw
+                params_track["RW_optim"] = RW_optim
                 params_track["Ljoin"] = inp_WG_L
                 params_track["layer"] = layer
                 params_track["y0"] = y_pos
                 params_track["x0"] = x_pos
                 params_track["circle_coupling"] = circle_coupling
                 params_track["R0"] = RR
+                params_track["trck_type"] = trck_type
 
                 name, xy_met, xy_tot = GenerateRaceTrackChristy(
                     fid, params_track, ncell, cnt
@@ -192,6 +201,7 @@ def CreateRaceTrackThroughShifted(fid, param, ncell):
                     x_sleft = x_pos + xtrack.min() - 30
                 y_txt = WG_through_port_y_pos + y_pos_text
                 params_port["name"] = Name + "_" + str(cnt)
+                params_port["through_align"] = through_align
                 params_port["RR"] = RR
                 params_port["G"] = g
                 params_port["RW"] = rw
