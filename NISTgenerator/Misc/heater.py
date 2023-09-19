@@ -377,27 +377,41 @@ def LigentecHeater(fid, param, ncell, cnt_out):
             fid.write(str(31) + " layer\n")
             fid.write(str(0) + " dataType\n")
             # -- top
+            center_x = (x1_p1p + x2_p1p + x3_p1p + x4_p1p) / 4
+            center_y = (y1_p1p + y2_p1p + y3_p1p + y4_p1p) / 4
+            x1 = center_x + Wvia / 2
+            y1 = center_y + Wvia / 2
+
+            x2 = center_x + Wvia / 2
+            y2 = center_y - Wvia / 2
+
+            x3 = center_x - Wvia / 2
+            y3 = center_y - Wvia / 2
+
+            x4 = center_x - Wvia / 2
+            y4 = center_y + Wvia / 2
+
             via_shift = WviaBlock / 2 - Wvia / 2
             r_rwc = rr + rw / 2
             rmet1 = np.sqrt((r_rwc + Wvia / 2) ** 2 + via_shift**2)
-            th1 = th - sign * np.arctan(via_shift / (r_rwc + Wvia / 2))
-            x1 = x_pos + rmet1 * np.cos(th1)
-            y1 = y_pos + rmet1 * np.sin(th1)
+            # th1 = th - sign * np.arctan(via_shift / (r_rwc + Wvia / 2))
+            # x1 = x_pos + rmet1 * np.cos(th1)
+            # y1 = y_pos + rmet1 * np.sin(th1)
 
-            rmet1 = np.sqrt((r_rwc + Wvia / 2) ** 2 + (via_shift + Wvia) ** 2)
-            th1 = th - sign * np.arctan((via_shift + Wvia) / (r_rwc + Wvia / 2))
-            x2 = x_pos + rmet1 * np.cos(th1)
-            y2 = y_pos + rmet1 * np.sin(th1)
+            # rmet1 = np.sqrt((r_rwc + Wvia / 2) ** 2 + (via_shift + Wvia) ** 2)
+            # th1 = th - sign * np.arctan((via_shift + Wvia) / (r_rwc + Wvia / 2))
+            # x2 = x_pos + rmet1 * np.cos(th1)
+            # y2 = y_pos + rmet1 * np.sin(th1)
 
-            rmet1 = np.sqrt((r_rwc - Wvia / 2) ** 2 + (via_shift + Wvia) ** 2)
-            th1 = th - sign * np.arctan((via_shift + Wvia) / (r_rwc - Wvia / 2))
-            x3 = x_pos + rmet1 * np.cos(th1)
-            y3 = y_pos + rmet1 * np.sin(th1)
+            # rmet1 = np.sqrt((r_rwc - Wvia / 2) ** 2 + (via_shift + Wvia) ** 2)
+            # th1 = th - sign * np.arctan((via_shift + Wvia) / (r_rwc - Wvia / 2))
+            # x3 = x_pos + rmet1 * np.cos(th1)
+            # y3 = y_pos + rmet1 * np.sin(th1)
 
-            rmet1 = np.sqrt((r_rwc - Wvia / 2) ** 2 + (via_shift) ** 2)
-            th1 = th - sign * np.arctan((via_shift) / (r_rwc - Wvia / 2))
-            x4 = x_pos + rmet1 * np.cos(th1)
-            y4 = y_pos + rmet1 * np.sin(th1)
+            # rmet1 = np.sqrt((r_rwc - Wvia / 2) ** 2 + (via_shift) ** 2)
+            # th1 = th - sign * np.arctan((via_shift) / (r_rwc - Wvia / 2))
+            # x4 = x_pos + rmet1 * np.cos(th1)
+            # y4 = y_pos + rmet1 * np.sin(th1)
             fid.write(
                 f"{x1:.3f} {y1:.3f} "
                 + f"{x2:.3f} {y2:.3f} "
@@ -552,7 +566,10 @@ def LigentecHeater(fid, param, ncell, cnt_out):
             fid.write(str(0) + " dataType\n")
             rmet1 = np.sqrt((r_rwc + Wvia / 2) ** 2 + via_shift**2)
             th1 = theta_heat - np.arctan(via_shift / (r_rwc + Wvia / 2))
-            x_pad = x_pos  # + rr + rw + 1 + Wpad / 2
+            if np.sign(rot) > 0:
+                x_pad = np.min([x1_p1p, x2_p1p, x3_p1p, x4_p1p]) + Wpad / 2
+            else:
+                x_pad = np.max([x1_p1p, x2_p1p, x3_p1p, x4_p1p]) - Wpad / 2  #
             y_pad = y_pos + sign * (rr + Wpad / 2 + 15)  # + rw + rmet1 * np.sin(th1)
             fid.write(
                 f"{x_pad +  - Wopen/2:.3f} {y_pad - Wopen/2:.3f} "

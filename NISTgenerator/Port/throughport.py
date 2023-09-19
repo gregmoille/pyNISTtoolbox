@@ -15,15 +15,16 @@ def CreateThroughPort(fid, param, ncell, cnt_out):
     layer = param.get("layer", None)
     layerWg = param.get("layerWg", layer)
     layerTapper = param.get("layerTapper", layer)
-
+    cnt_shift = param.get("cnt_shift", 0)
     RR = param.get("RR", None)
+    loopback = param.get("loopback", False)
     RW = param.get("RW", None)
     G = param.get("G", None)
     x0 = param.get("x0", None)
     y0 = param.get("y0", None)
-    x_shift= param.get("x_shift", None)
-    Gdimer= param.get("Gdimer", None)
-
+    x_shift = param.get("x_shift", None)
+    Gdimer = param.get("Gdimer", None)
+    S_shrink = param.get("S_shrink", 0)
     angled_facets = param.get("angled_facets", None)
     resist = param.get("resist", "positive")
     Drop = param.get("Drop", False)
@@ -390,155 +391,170 @@ def CreateThroughPort(fid, param, ncell, cnt_out):
 
     else:
         wvg_type = "waveguide"
-        #  -- Create the left cap- --
-        if cap:
-            x1_in_cap = x1_in_lin - input_inv_taper_st_length
-            name_out.append(Name + "IC" + "Cell" + str(ncell) + "_" + str(cnt_out))
-            fid.write(str(layerTapper) + " layer\n")
-            fid.write(
-                "<"
-                + Name
-                + "IC"
-                + "Cell"
-                + str(ncell)
-                + "_"
-                + str(cnt_out)
-                + " struct>\n"
-            )
-            fid.write(
-                "\t<{} {} ".format(x1_in_cap, y_thrgh)
-                + "{} {} ".format(x1_in_lin, y_thrgh)
-                + "{} ".format(input_inv_taper_W)
-                + "0 1 0 {}>\n".format(wvg_type)
-            )
-        name_out.append(Name + "InL" + "Cell" + str(ncell) + "_" + str(cnt_out))
-        fid.write(
-            "<" + Name + "InL" + "Cell" + str(ncell) + "_" + str(cnt_out) + " struct>\n"
-        )
-        fid.write(str(layerTapper) + " layer\n")
-        if angled_facets is None:
-
-            #  -- small surplus for cuting --
-            if input_surplus_taper > 0:
+        offset = (RR - 23) * (cnt_shift + 1) * 0.1
+        if RR <= 23:
+            offset = 0
+        Ws1_in_lin = input_inv_taper_W
+        Ws2_in_lin = W
+        if not loopback:
+            #  -- Create the left cap- --
+            if cap:
+                x1_in_cap = x1_in_lin - input_inv_taper_st_length
+                name_out.append(Name + "IC" + "Cell" + str(ncell) + "_" + str(cnt_out))
+                fid.write(str(layerTapper) + " layer\n")
                 fid.write(
-                    "\t<{} {} ".format(x1_in_lin - input_surplus_taper, y_thrgh)
+                    "<"
+                    + Name
+                    + "IC"
+                    + "Cell"
+                    + str(ncell)
+                    + "_"
+                    + str(cnt_out)
+                    + " struct>\n"
+                )
+                fid.write(
+                    "\t<{} {} ".format(x1_in_cap, y_thrgh)
                     + "{} {} ".format(x1_in_lin, y_thrgh)
                     + "{} ".format(input_inv_taper_W)
+                    + "0 1 0 {}>\n".format(wvg_type)
+                )
+            name_out.append(Name + "InL" + "Cell" + str(ncell) + "_" + str(cnt_out))
+            fid.write(
+                "<"
+                + Name
+                + "InL"
+                + "Cell"
+                + str(ncell)
+                + "_"
+                + str(cnt_out)
+                + " struct>\n"
+            )
+            fid.write(str(layerTapper) + " layer\n")
+            if angled_facets is None:
+
+                #  -- small surplus for cuting --
+                if input_surplus_taper > 0:
+                    fid.write(
+                        "\t<{} {} ".format(x1_in_lin - input_surplus_taper, y_thrgh)
+                        + "{} {} ".format(x1_in_lin, y_thrgh)
+                        + "{} ".format(input_inv_taper_W)
+                        + "0 0 0 {}>\n".format(wvg_type)
+                    )
+                #  -- Create the left linear tapper- --
+                # W1_in_lin = input_inv_taper_W+2*exp_w
+                # W2_in_lin = W+2*exp_w
+
+                if do_mixmatch:
+                    fid.write(
+                        "\t<{} {} ".format(
+                            x1_in_lin - 5 + 3.5 / 2 - input_inv_taper_W / 2, y_thrgh
+                        )
+                        + "{} {} ".format(x1_in_lin + Ltap_ebeam - 3.5 / 2, y_thrgh)
+                        + "{} ".format(3.5)
+                        + "0 1 1 {}>\n".format(wvg_type)
+                    )
+
+                fid.write(
+                    "\t<{} {} ".format(x1_in_lin, y_thrgh)
+                    + "{} {} ".format(x2_in_lin, y_thrgh)
+                    + "{} {} ".format(Ws1_in_lin, Ws2_in_lin)
+                    + "0 linearTaper>\n"
+                )
+
+                # -- Create Left waveguide --
+                W_in_wg = W
+                # We_in_wg = exp_w
+
+                name_out.append(
+                    Name + "IW1_" + "Cell" + str(ncell) + "_" + str(cnt_out)
+                )
+                fid.write(str(layerWg) + " layer\n")
+                fid.write(
+                    "<"
+                    + Name
+                    + "IW1_"
+                    + "Cell"
+                    + str(ncell)
+                    + "_"
+                    + str(cnt_out)
+                    + " struct>\n"
+                )
+                fid.write(
+                    "\t<{} {} ".format(x2_in_lin, y_thrgh)
+                    + "{} {} ".format(x2_in_wg, y_thrgh)
+                    + "{} ".format(W)
                     + "0 0 0 {}>\n".format(wvg_type)
                 )
-            #  -- Create the left linear tapper- --
-            # W1_in_lin = input_inv_taper_W+2*exp_w
-            # W2_in_lin = W+2*exp_w
-            Ws1_in_lin = input_inv_taper_W
-            Ws2_in_lin = W
 
-            if do_mixmatch:
+            else:
+                Ws1_in_lin = input_inv_taper_W
+                Ws2_in_lin = W
+                Ltaper = x2_in_lin - x1_in_lin
+                angle_deg = angled_facets
+                angle = angle_deg * np.pi / 180
+                tap_short = 25 * np.cos(angle) * 2 / (np.sqrt(2))
+
+                y_in_angle = y_thrgh - Ltaper * np.sin(angle)
+                y_out_angle = y_in_angle + (Ltaper - tap_short) * np.sin(angle)
+                x_out_angle = x1_in_lin + (Ltaper - tap_short) * np.cos(angle)
+
+                x3 = x_out_angle - Ws2_in_lin / 2 * np.sin(angle)
+                y3 = y_out_angle + Ws2_in_lin / 2
+                x4 = x_out_angle + Ws2_in_lin / 2 * np.sin(angle)
+                y4 = y_out_angle - Ws2_in_lin / 2
+
                 fid.write(
-                    "\t<{} {} ".format(
-                        x1_in_lin - 5 + 3.5 / 2 - input_inv_taper_W / 2, y_thrgh
-                    )
-                    + "{} {} ".format(x1_in_lin + Ltap_ebeam - 3.5 / 2, y_thrgh)
-                    + "{} ".format(3.5)
-                    + "0 1 1 {}>\n".format(wvg_type)
+                    f"\t{x1_in_lin:.3f} {y_in_angle + Ws1_in_lin/2:.3f} "
+                    + f"{x3:.3f} {y3:.3f} "
+                    + f"{x4:.3f} {y4:.3f} "
+                    + f"{x1_in_lin:.3f} {y_in_angle - Ws1_in_lin/2:.3f} "
+                    + "points2shape\n"
                 )
 
-            fid.write(
-                "\t<{} {} ".format(x1_in_lin, y_thrgh)
-                + "{} {} ".format(x2_in_lin, y_thrgh)
-                + "{} {} ".format(Ws1_in_lin, Ws2_in_lin)
-                + "0 linearTaper>\n"
-            )
+                W_in_wg = W
+                # We_in_wg = exp_w
 
-            # -- Create Left waveguide --
-            W_in_wg = W
-            # We_in_wg = exp_w
+                name_out.append(
+                    Name + "IW1_" + "Cell" + str(ncell) + "_" + str(cnt_out)
+                )
+                fid.write(str(layerWg) + " layer\n")
+                fid.write(
+                    "<"
+                    + Name
+                    + "IW1_"
+                    + "Cell"
+                    + str(ncell)
+                    + "_"
+                    + str(cnt_out)
+                    + " struct>\n"
+                )
+                dy = y_thrgh - Ws2_in_lin / 2 - y4
+                p0 = [x4, y4]
+                p1 = [x4 + dy / np.tan(angle), y_thrgh - Ws2_in_lin / 2]
+                p2 = [x2_in_lin, y_thrgh - Ws2_in_lin / 2]
+                p3 = [x2_in_lin + 5, y_thrgh - Ws2_in_lin / 2]
+                xyBzst_down = np.array(
+                    [Bezier(t, p0, p1, p2, p3) for t in np.linspace(0, 1, 40)]
+                )
+                dy = y_thrgh + Ws2_in_lin / 2 - y3
+                p0 = [x3, y3]
+                p1 = [x3 + dy / np.tan(angle), y_thrgh + Ws2_in_lin / 2]
+                p2 = [x2_in_lin, y_thrgh + Ws2_in_lin / 2]
+                p3 = [x2_in_lin + 5, y_thrgh + Ws2_in_lin / 2]
+                xyBzst_up = np.array(
+                    [Bezier(t, p0, p1, p2, p3) for t in np.linspace(0, 1, 40)]
+                )
+                xyBzt = np.vstack([xyBzst_up, xyBzst_down[::-1]])
+                for xx, yy in xyBzt:
+                    fid.write(f"{xx:.3f} {yy:.3f} ")
+                fid.write("points2shape\n ")
 
-            name_out.append(Name + "IW1_" + "Cell" + str(ncell) + "_" + str(cnt_out))
-            fid.write(str(layerWg) + " layer\n")
-            fid.write(
-                "<"
-                + Name
-                + "IW1_"
-                + "Cell"
-                + str(ncell)
-                + "_"
-                + str(cnt_out)
-                + " struct>\n"
-            )
-            fid.write(
-                "\t<{} {} ".format(x2_in_lin, y_thrgh)
-                + "{} {} ".format(x2_in_wg, y_thrgh)
-                + "{} ".format(W)
-                + "0 0 0 {}>\n".format(wvg_type)
-            )
-
-        else:
-            Ws1_in_lin = input_inv_taper_W
-            Ws2_in_lin = W
-            Ltaper = x2_in_lin - x1_in_lin
-            angle_deg = angled_facets
-            angle = angle_deg * np.pi / 180
-            tap_short = 25 * np.cos(angle) * 2 / (np.sqrt(2))
-
-            y_in_angle = y_thrgh - Ltaper * np.sin(angle)
-            y_out_angle = y_in_angle + (Ltaper - tap_short) * np.sin(angle)
-            x_out_angle = x1_in_lin + (Ltaper - tap_short) * np.cos(angle)
-
-            x3 = x_out_angle - Ws2_in_lin / 2 * np.sin(angle)
-            y3 = y_out_angle + Ws2_in_lin / 2
-            x4 = x_out_angle + Ws2_in_lin / 2 * np.sin(angle)
-            y4 = y_out_angle - Ws2_in_lin / 2
-
-            fid.write(
-                f"\t{x1_in_lin:.3f} {y_in_angle + Ws1_in_lin/2:.3f} "
-                + f"{x3:.3f} {y3:.3f} "
-                + f"{x4:.3f} {y4:.3f} "
-                + f"{x1_in_lin:.3f} {y_in_angle - Ws1_in_lin/2:.3f} "
-                + "points2shape\n"
-            )
-
-            W_in_wg = W
-            # We_in_wg = exp_w
-
-            name_out.append(Name + "IW1_" + "Cell" + str(ncell) + "_" + str(cnt_out))
-            fid.write(str(layerWg) + " layer\n")
-            fid.write(
-                "<"
-                + Name
-                + "IW1_"
-                + "Cell"
-                + str(ncell)
-                + "_"
-                + str(cnt_out)
-                + " struct>\n"
-            )
-            dy = y_thrgh - Ws2_in_lin / 2 - y4
-            p0 = [x4, y4]
-            p1 = [x4 + dy / np.tan(angle), y_thrgh - Ws2_in_lin / 2]
-            p2 = [x2_in_lin, y_thrgh - Ws2_in_lin / 2]
-            p3 = [x2_in_lin + 5, y_thrgh - Ws2_in_lin / 2]
-            xyBzst_down = np.array(
-                [Bezier(t, p0, p1, p2, p3) for t in np.linspace(0, 1, 40)]
-            )
-            dy = y_thrgh + Ws2_in_lin / 2 - y3
-            p0 = [x3, y3]
-            p1 = [x3 + dy / np.tan(angle), y_thrgh + Ws2_in_lin / 2]
-            p2 = [x2_in_lin, y_thrgh + Ws2_in_lin / 2]
-            p3 = [x2_in_lin + 5, y_thrgh + Ws2_in_lin / 2]
-            xyBzst_up = np.array(
-                [Bezier(t, p0, p1, p2, p3) for t in np.linspace(0, 1, 40)]
-            )
-            xyBzt = np.vstack([xyBzst_up, xyBzst_down[::-1]])
-            for xx, yy in xyBzt:
-                fid.write(f"{xx:.3f} {yy:.3f} ")
-            fid.write("points2shape\n ")
-
-            fid.write(
-                "\t<{} {} ".format(x2_in_lin + 5, y_thrgh)
-                + "{} {} ".format(x2_in_wg, y_thrgh)
-                + "{} ".format(W)
-                + "0 0 0 {}>\n".format(wvg_type)
-            )
+                fid.write(
+                    "\t<{} {} ".format(x2_in_lin + 5, y_thrgh)
+                    + "{} {} ".format(x2_in_wg, y_thrgh)
+                    + "{} ".format(W)
+                    + "0 0 0 {}>\n".format(wvg_type)
+                )
 
         # -- Create Right waveguide --
         W_in_wg = W
@@ -628,6 +644,52 @@ def CreateThroughPort(fid, param, ncell, cnt_out):
                     + "{} ".format(output_inv_taper_W)
                     + "0 0 0 {}>\n".format(wvg_type)
                 )
+            if loopback:
+                if output_surplus_taper > 0:
+                    fid.write(
+                        "\t<{} {} ".format(x2_out_lin, y_thrgh - out_sep)
+                        + "{} {} ".format(
+                            x2_out_lin + output_surplus_taper, y_thrgh - out_sep
+                        )
+                        + "{} ".format(output_inv_taper_W)
+                        + "0 0 0 {}>\n".format(wvg_type)
+                    )
+                fid.write(
+                    "<{} {} ".format(x1_out_lin, y_thrgh - out_sep)
+                    + "{} {} ".format(x2_out_lin, y_thrgh - out_sep)
+                    + "{} {} ".format(Ws2_in_lin, Ws1_in_lin)
+                    + "0 linearTaper>\n"
+                )
+
+                fid.write(
+                    "\t<{} {} ".format(x1_out_wg + S_shrink, y_thrgh - out_sep)
+                    + "{} {} ".format(x1_out_lin + shift, y_thrgh - out_sep)
+                    + "{} ".format(W)
+                    + "0 0 0 {}>\n".format(wvg_type)
+                )
+
+                fid.write(
+                    f"\t<{x1_out_wg + S_shrink:.3f} {y_thrgh - out_sep:3f} "
+                    + f"{-out_sep/2:.3f} {out_sep/2:3f} "
+                    + f"{W:.3f} "
+                    + "0 90degreeBendLH>\n"
+                )
+
+                fid.write(
+                    f"\t<{x1_out_wg + S_shrink:.3f} {y_thrgh:3f} "
+                    + f"{-out_sep/2:.3f} {-out_sep/2:3f} "
+                    + f"{W:.3f} "
+                    + "0 90degreeBendLH>\n"
+                )
+                if np.abs(S_shrink)>0:
+                    fid.write(
+                        "\t<{} {} ".format(x1_out_wg + S_shrink, y_thrgh)
+                        + "{} {} ".format(x1_out_wg , y_thrgh)
+                        + "{} ".format(W)
+                        + "0 0 0 {}>\n".format(wvg_type)
+                    )
+
+
         else:
             y_out_angle = y_thrgh + Ltaper * np.sin(angle)
             y_in_angle = y_out_angle - (Ltaper - tap_short) * np.sin(angle)
@@ -679,6 +741,7 @@ def CreateThroughPort(fid, param, ncell, cnt_out):
             for xx, yy in xyBzt:
                 fid.write(f"{xx:.3f} {yy:.3f} ")
             fid.write("points2shape\n ")
+
         if Drop:
             name_out.append(Name + "Drop_" + "Cell" + str(ncell) + "_" + str(cnt_out))
             fid.write(str(layerWg) + " layer\n")
@@ -708,7 +771,7 @@ def CreateThroughPort(fid, param, ncell, cnt_out):
                     + f"{W:.3f} {0} "
                     + "sBend>\n"
                 )
-                
+
                 fid.write(
                     f"\t<{x1_out_wg - RR/2 - 23:.3f} {y_drop + 23:3f} "
                     + f"{-R90/2:.3f} {-R90/2:3f} "
@@ -736,7 +799,7 @@ def CreateThroughPort(fid, param, ncell, cnt_out):
                     + f"{W:.3f} {0} "
                     + "sBendLH>\n"
                 )
-            else: 
+            else:
                 fid.write(
                     f"<{x1_out_wg + 10:.3f} {y_drop:.3f} "
                     + f"{x1_out_wg_back:.3f} {y_drop:.3f} "
@@ -746,13 +809,25 @@ def CreateThroughPort(fid, param, ncell, cnt_out):
                 Hdrop = (y_thrgh - out_sep) - (y_drop)
 
                 fid.write(
-                    f"\t<{x1_out_wg_back :.3f} {y_drop:3f} "
-                    + f"{x_shift - 2*RR:.3f} {Hdrop:.3f} "
+                    f"\t<{x1_out_wg_back - S_shrink -offset:.3f} {y_drop:3f} "
+                    + f"{x_shift - 2*RR + 2*S_shrink - offset:.3f} {Hdrop:.3f} "
                     + f"{W:.3f} {0} "
                     + "sBendLH>\n"
                 )
-                
-            
+                if np.abs(offset) > 0 or np.abs(S_shrink) > 0:
+                    fid.write(
+                        f"<{x1_out_wg_back - S_shrink -offset:.3f} {y_drop:.3f} "
+                        + f"{x1_out_wg_back:.3f} {y_drop:.3f} "
+                        + f"{W:.3f} "
+                        + f"0 0 0 {wvg_type}>\n"
+                    )
+
+                    fid.write(
+                        f"<{x1_out_wg_back  +(x_shift - 2*RR):.3f} {y_thrgh - out_sep:.3f} "
+                        + f"{x1_out_wg_back - S_shrink -offset + x_shift - 2*RR + 2*S_shrink - offset:.3f} {y_thrgh - out_sep:.3f} "
+                        + f"{Ws2_in_lin:.3f} "
+                        + f"0 0 0 {wvg_type}>\n"
+                    )
 
             fid.write(
                 f"<{x1_out_wg_back  +(x_shift - 2*RR):.3f} {y_thrgh - out_sep:.3f} "

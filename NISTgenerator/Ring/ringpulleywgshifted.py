@@ -21,9 +21,15 @@ def CreateWGRingPulleyWgShifted(fid, param, ncell):
     RR = param.get("RR", None)
     RW = param.get("RW", None)
     G = param.get("G", None)
+    inner_RR = param.get("inner_RR", None)
+    inner_RW = param.get("inner_RW", None)
+    inner_G = param.get("inner_G", None)
+
     Drop = param.get("Drop", None)
+    out_sep = param.get("out_sep", 5)
     Gdimer = param.get("Gdimer", None)
 
+    loopback = param.get("loopback", False)
     box = param.get("box", False)
     font = param.get("font", "Source Code Pro")
     fontsize = param.get("fontsize", 8)
@@ -253,6 +259,33 @@ def CreateWGRingPulleyWgShifted(fid, param, ncell):
                                                 + f"{Npts} {cos_phase*180/np.pi:.3f} torusWaveIn\n"
                                             )
 
+                                            if gdimer is not None:
+                                                ydim_shift = -5
+                                                xdim = np.sqrt(
+                                                    (2 * (rr + rw) + gdimer) ** 2
+                                                    - ydim_shift**2
+                                                )
+                                                fid.write(str(3) + " layer\n")
+                                                fid.write(
+                                                    f"<{x_pos - xdim:.3f} {y_pos - Rdec + ydim_shift:.3f} "
+                                                    + f"{0} {rr+rw} 0 0 0 0 "
+                                                    + "0 ringPulleyLCAV>\n"
+                                                )
+                                                fid.write(str(4) + " layer\n\t")
+                                                fid.write(
+                                                    "\t{} {} ".format(
+                                                        x_pos - xdim,
+                                                        y_pos - Rdec + ydim_shift,
+                                                    )
+                                                    + "{} {} ".format(
+                                                        0,
+                                                        rr,
+                                                    )
+                                                    + f"{2 * Nmodulation:.0f} "
+                                                    + f"{cos_amp} "
+                                                    + f"{Npts} {-cos_phase*180/np.pi:.3f} torusWaveIn\n"
+                                                )
+
                                             fid.write(
                                                 f"<{DesName}innerRing {DesName}Toremove{cnt} {4} genArea>\n"
                                             )
@@ -266,9 +299,7 @@ def CreateWGRingPulleyWgShifted(fid, param, ncell):
                                             fid.write(
                                                 f"<{DesName}outerRing {DesName}innerRing {layer} XOR>\n"
                                             )
-
                                             fid.write(str(layer) + " layer\n")
-
                                         else:
                                             name_out += [f"{Name}C{ncell}_{cnt}"]
                                             fid.write(
@@ -279,6 +310,20 @@ def CreateWGRingPulleyWgShifted(fid, param, ncell):
                                                 + f"{rr} {rw} {g} {lc} {w} 0 "
                                                 + "0 ringPulleyLCAV>\n"
                                             )
+                                            if inner_RR is not None:
+                                                y_aux = (
+                                                    y_pos
+                                                    - Rdec
+                                                    - rr
+                                                    + rw
+                                                    + inner_RR
+                                                    + inner_G
+                                                )
+                                                fid.write(
+                                                    f"<{x_pos:.3f} {y_aux:.3f} "
+                                                    + f"{inner_RR} {inner_RW} {0} {0} {0} 0 "
+                                                    + "0 ringPulleyLCAV>\n"
+                                                )
                                             if gdimer is not None:
                                                 ydim_shift = -5
                                                 xdim = np.sqrt(
@@ -291,12 +336,35 @@ def CreateWGRingPulleyWgShifted(fid, param, ncell):
                                                     + f"{rr} {rw} 0 0 0 0 "
                                                     + "0 ringPulleyLCAV>\n"
                                                 )
+                                                if inner_RR is not None:
+                                                    y_aux_dim = (
+                                                        y_pos
+                                                        - Rdec
+                                                        + ydim_shift
+                                                        + rr
+                                                        - rw
+                                                        - inner_RR
+                                                        - inner_G
+                                                    )
+                                                    fid.write(
+                                                        f"<{x_pos - xdim:.3f} {y_aux_dim:.3f} "
+                                                        + f"{inner_RR} {inner_RW} {0} {0} {0} 0 "
+                                                        + "0 ringPulleyLCAV>\n"
+                                                    )
 
                                         if heater:
                                             params_heater = copy(param)
                                             if gdimer is not None:
-                                                params_heater["theta_heat_deg"] = 120
-                                                params_heater["rot"] = 120
+                                                if rr > 100:
+                                                    params_heater[
+                                                        "theta_heat_deg"
+                                                    ] = 120
+                                                    params_heater["rot"] = 120
+                                                else:
+                                                    params_heater[
+                                                        "theta_heat_deg"
+                                                    ] = 140
+                                                    params_heater["rot"] = 110
                                                 params_heater["pad_loc"] = "top"
                                             if rr > 200:
                                                 params_heater["pad_loc"] = "left"
@@ -314,7 +382,10 @@ def CreateWGRingPulleyWgShifted(fid, param, ncell):
 
                                             if gdimer is not None:
                                                 params_heater2 = copy(params_heater)
-                                                params_heater2["rot"] = -60
+                                                if rr > 100:
+                                                    params_heater2["rot"] = -60
+                                                else:
+                                                    params_heater2["rot"] = -70
                                                 params_heater2["name"] = (
                                                     Name + str(cnt) + "dim"
                                                 )
@@ -356,10 +427,11 @@ def CreateWGRingPulleyWgShifted(fid, param, ncell):
                                     y_txt = WG_through_port_y_pos + y_pos_text
                                     params_port["name"] = Name + str(cnt)
                                     params_port["cnt_shift"] = cnt_shift
+                                    params_port["loopback"] = loopback
                                     params_port["Drop"] = Drop
                                     params_port["Gdimer"] = gdimer
-                                    if Drop:
-                                        params_port["out_sep"] = 3.5
+                                    # if Drop:
+                                    #     params_port["out_sep"] = 3.5
                                     params_port["y_drop"] = (
                                         y_pos - Rdec - (rr) - rw - w / 2 - g
                                     )
@@ -395,6 +467,7 @@ def CreateWGRingPulleyWgShifted(fid, param, ncell):
                                         params_port["xin_c"] -= xdim
                                     params_port["yin_c"] = y_sleft
                                     params_port["S_in_shift"] = S_in_shift
+                                    params_port["S_shrink"] = S_shrink
                                     params_port["x_sleft_out"] = x_sleft_out
                                     params_port["x_shift"] = x_shift
                                     # params_port["Slength"] = Slenght
@@ -414,63 +487,63 @@ def CreateWGRingPulleyWgShifted(fid, param, ncell):
                                         name_out += CreateThroughPort(
                                             fid, params_port, ncell, cnt
                                         )
+                                    if not loopback:
+                                        # # conenct left
+                                        αc = αc0
+                                        x1 = x_pos - 2 * np.sin(lc / (rext) / 2) * rext
+                                        Sdimshift = 0
+                                        if gdimer is not None:
+                                            Sdimshift = -xdim
+                                            # fid.write(str(layer) + " layer\n")
+                                            # fid.write(
+                                            #         f"\t<{x1:.3f} {WG_through_port_y_pos:.3f} "
+                                            #         + f"{x1 + 2*rr+5:.3f} {WG_through_port_y_pos:.3f} "
+                                            #         + f"{w:.3f} 0 0 0 waveguide>\n"
+                                            #     )
+                                        if cnt_shift > 0:
+                                            αc = 2 * αc
 
-                                    # # conenct left
-                                    αc = αc0
-                                    x1 = x_pos - 2 * np.sin(lc / (rext) / 2) * rext
-                                    Sdimshift = 0
-                                    if gdimer is not None:
-                                        Sdimshift = -xdim
-                                        # fid.write(str(layer) + " layer\n")
-                                        # fid.write(
-                                        #         f"\t<{x1:.3f} {WG_through_port_y_pos:.3f} "
-                                        #         + f"{x1 + 2*rr+5:.3f} {WG_through_port_y_pos:.3f} "
-                                        #         + f"{w:.3f} 0 0 0 waveguide>\n"
-                                        #     )
-                                    if cnt_shift > 0:
-                                        αc = 2 * αc
-
-                                        y1 = yc + (r1 - w / 2) * np.cos(0.5 * lc / r1)
-                                        cx1 = (
-                                            x_pos - 2 * rr
-                                        )  # - r1* np.cos(np.pi/2 - 0.5*lc/r1 - αc/2)/np.cos(αc/2)
-                                        cy1 = yc + r1 * np.sin(
-                                            np.pi / 2 - 0.5 * lc / r1 - αc / 2
-                                        ) / np.cos(αc / 2)
-                                        cx2 = x_pos - x_shift + rr
-                                        cy2 = y_sleft
-                                        x2 = x_pos - x_shift
-                                        y2 = cy2
-                                        fid.write(str(layer) + " layer\n")
-                                        if resist == "negative":
-                                            # pass\
-                                            fid.write(
-                                                f"\t<{x2-S_shrink:.3f} {y2:.3f} "
-                                                + f"{x1 + Sdimshift+S_shrink:.3f} {WG_through_port_y_pos:.3f} "
-                                                + f"{w:.3f} {0} "
-                                                + "sBend>\n"
-                                            )
-                                            if np.abs(S_shrink) > 0:
+                                            y1 = yc + (r1 - w / 2) * np.cos(0.5 * lc / r1)
+                                            cx1 = (
+                                                x_pos - 2 * rr
+                                            )  # - r1* np.cos(np.pi/2 - 0.5*lc/r1 - αc/2)/np.cos(αc/2)
+                                            cy1 = yc + r1 * np.sin(
+                                                np.pi / 2 - 0.5 * lc / r1 - αc / 2
+                                            ) / np.cos(αc / 2)
+                                            cx2 = x_pos - x_shift + rr
+                                            cy2 = y_sleft
+                                            x2 = x_pos - x_shift
+                                            y2 = cy2
+                                            fid.write(str(layer) + " layer\n")
+                                            if resist == "negative":
+                                                # pass\
                                                 fid.write(
                                                     f"\t<{x2-S_shrink:.3f} {y2:.3f} "
-                                                    + f"{x2:.3f} {y2:.3f} "
-                                                    + f"{w:.3f} 0 0 0 waveguide>\n"
+                                                    + f"{x1 + Sdimshift+S_shrink:.3f} {WG_through_port_y_pos:.3f} "
+                                                    + f"{w:.3f} {0} "
+                                                    + "sBend>\n"
                                                 )
+                                                if np.abs(S_shrink) > 0:
+                                                    fid.write(
+                                                        f"\t<{x2-S_shrink:.3f} {y2:.3f} "
+                                                        + f"{x2:.3f} {y2:.3f} "
+                                                        + f"{w:.3f} 0 0 0 waveguide>\n"
+                                                    )
+                                                    fid.write(
+                                                        f"\t<{x1 + Sdimshift+S_shrink:.3f} {WG_through_port_y_pos:.3f} "
+                                                        + f"{x1 + Sdimshift:.3f} {WG_through_port_y_pos:.3f} "
+                                                        + f"{w:.3f} 0 0 0 waveguide>\n"
+                                                    )
+                                            else:
                                                 fid.write(
-                                                    f"\t<{x1 + Sdimshift+S_shrink:.3f} {WG_through_port_y_pos:.3f} "
-                                                    + f"{x1 + Sdimshift:.3f} {WG_through_port_y_pos:.3f} "
-                                                    + f"{w:.3f} 0 0 0 waveguide>\n"
+                                                    "\t<{} {} ".format(x2, y2)
+                                                    + "{} {} ".format(
+                                                        x1 - x2 - Ls,
+                                                        WG_through_port_y_pos - y2,
+                                                    )
+                                                    + "{} {} {} ".format(w, exp_w, 0)
+                                                    + "sBendInv>\n"
                                                 )
-                                        else:
-                                            fid.write(
-                                                "\t<{} {} ".format(x2, y2)
-                                                + "{} {} ".format(
-                                                    x1 - x2 - Ls,
-                                                    WG_through_port_y_pos - y2,
-                                                )
-                                                + "{} {} {} ".format(w, exp_w, 0)
-                                                + "sBendInv>\n"
-                                            )
 
                                         if do_field:
                                             fid.write(str(field_box + cnt) + " layer\n")
@@ -557,7 +630,7 @@ def CreateWGRingPulleyWgShifted(fid, param, ncell):
                                         "name": Name + "_" + str(cnt),
                                     }
                                     # if param["angled_facets"]:
-                                    if par_lab["x_pos_left"]:
+                                    if par_lab["x_pos_left"] is not None:
                                         par_lab["x_pos_left"] = par_lab[
                                             "x_pos_left"
                                         ] - 6 * len(txt)
