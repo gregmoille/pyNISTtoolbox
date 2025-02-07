@@ -39,6 +39,8 @@ def CreateWGRingPulleyWg(fid, param, ncell):
     x_pos_text_out = param.get('x_pos_text_out', 1500)
     tot_length = param.get('tot_length',3850)
 
+    mix_and_match = param.get('mix_and_match',False)
+
     params_port = copy(param)
 
 
@@ -55,8 +57,7 @@ def CreateWGRingPulleyWg(fid, param, ncell):
     cnt = 0
     name_out = []
     name_loop = []
-    fid.write(str(layer) + ' layer\n')
-    print('------------------------------------')
+
     for lc in LC:
         for g in G:
             for rw in RW:
@@ -68,7 +69,8 @@ def CreateWGRingPulleyWg(fid, param, ncell):
                           'g={} Lc={}\n'.format(g,lc))
 
 
-
+                    # fid.write(str(layer+1) + ' layer\n')
+                    # print('------------------------------------')
                     y_pos = y_shift * cnt + y0
                     WG_through_port_y_pos = y_pos+rr+g+W/2-2 * \
                         (1-np.cos(lc/(rr+g+W/2)/2))*(rr+g+W/2)
@@ -81,10 +83,12 @@ def CreateWGRingPulleyWg(fid, param, ncell):
                     params_port['RR'] = rr
                     params_port['G'] = g
                     params_port['RW'] = rw
+                    params_port['layer'] = layer+1
                     params_port[
                         'WG_through_port_y_pos'] = WG_through_port_y_pos
                     name_out += CreateThroughPort(fid, params_port, ncell, cnt)
-
+                    fid.write(str(layer) + ' layer\n')
+                    print('------------------------------------')
                     # Create Pulley Ring
                     #<x y ri Wr re N g Lc Nwg W We LS EC ringPulleyInvPosLCA>
                     Ls = inp_WG_L-2*np.sin(lc/(rr+g+W/2)/2)*(rr+g+W/2)
@@ -92,15 +96,26 @@ def CreateWGRingPulleyWg(fid, param, ncell):
                         Name + 'Cell' + str(ncell) + '_' + str(cnt))
                     fid.write('<' + Name + 'Cell' + str(ncell) +
                               '_' + str(cnt) + ' struct>\n')
-                    fid.write('<{} {} '.format(x0, y_pos) +
-                              '{} {} {} '.format(rr, rw, exp_w) +
-                              '{} {} '.format(g, lc) +
-                              '{} {} '.format(W, exp_w) +
-                              '{} '.format(Ls) +
-                              '0 ringPulleyInvPosLCAV>\n')
+                    if mix_and_match:
+                        fid.write('<{} {} '.format(x0, y_pos) +
+                                  '{} {} {} '.format(rr, rw, exp_w) +
+                                  '{} {} '.format(g, lc) +
+                                  '{} {} '.format(W, exp_w) +
+                                  '{} '.format(Ls) +
+                                  '1 ringPulleyInvPosLCAV>\n')
+                    else:
+                        fid.write('<{} {} '.format(x0, y_pos) +
+                                  '{} {} {} '.format(rr, rw, exp_w) +
+                                  '{} {} '.format(g, lc) +
+                                  '{} {} '.format(W, exp_w) +
+                                  '{} '.format(Ls) +
+                                  '0 ringPulleyInvPosLCAV>\n')
                     fid.write('\t{} {} '.format(x0, y_pos) +
                                     '{} {} '.format(rr/2 - 2, rr/2) +
                                     'torusVector\n')
+
+
+
 
                     # Create the label
                     if len(RR)>1:
@@ -120,11 +135,14 @@ def CreateWGRingPulleyWg(fid, param, ncell):
 
                     txt = txt_RR + txt_RW + txt_G
 
+                    
+                    # Create Bottom block waveguide
                     if not txt=='':
                         par_lab = {'x_pos_text': x_pos_text,
                                    'y_pos_text': y_txt,
                                    'txt': txt,
-                                   'font': font,
+                                    'font': font,
+                                    'layer': layer+1,
                                    'name': Name + 'Cell' + str(ncell) + '_' + str(cnt)}
                         name_out += CreateLabel(fid, par_lab, ncell)
 
@@ -133,11 +151,11 @@ def CreateWGRingPulleyWg(fid, param, ncell):
                                        'y_pos_text': y_txt,
                                        'txt': txt,
                                        'font': font,
+                                       'layer': layer+1,
                                        'name': Name + 'Cell' + str(ncell) + '_' + str(cnt)}
                             name_out += CreateLabel(fid, par_lab, ncell)
 
 
-                    # Create Bottom block waveguide
                     if blockline:
                         y_drop_out = y_pos - rr
                         L = tot_length + 2*input_inv_taper_st_length

@@ -13,3 +13,5 @@ from . import Port
 from . import Ring
 from . import Builder
 from . import Waveguides
+from . import Utils
+from . import ChipFeature

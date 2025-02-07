@@ -5,6 +5,7 @@ def CreateBumpStruct(fid, param, ncell):
     theta = param.get('theta', 0)
     Name = param.get('name', None)
     layer = param.get('layer', None)
+    datatype = param.get('datatype', 0)
     debug = param.get('debug', False)
     if debug:
         print('Creating Bump Structure: ')
@@ -15,6 +16,8 @@ def CreateBumpStruct(fid, param, ncell):
               'theta={}\n'.format(theta))
 
     fid.write(str(layer) + ' layer\n')
+    fid.write(f'{datatype} datatype\n')
+
     fid.write('<' + Name + 'Cell' + str(ncell) + ' struct>\n')
     fid.write('{:.3f} {:.3f} '.format(x0, y0) +
               '{:.3f} {:.3f} '.format(W, H) +
@@ -22,4 +25,5 @@ def CreateBumpStruct(fid, param, ncell):
               '{:.3f} roundrect\n'.format(theta))
 
     fid.write('\n')
+    fid.write(f'{0} datatype\n')
     return [Name + 'Cell' + str(ncell)]

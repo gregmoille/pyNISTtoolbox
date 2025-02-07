@@ -13,52 +13,55 @@ def CreateVernier(fid, param, ncell):
     y0 = param.get('y0', 0)
     x0 = param.get('x0', 0)
     xdec = param.get('xdec', 50)
+    bonding = param.get('bonding', True)
 
     name_out = []
     fid.write(str(layer) + ' layer\n')
 
-    # -- Creating the bounding box -- 
-    # ------------------------------------------------------------
-    #      xa.       xb
-    #       ----------   yb
-    #      |          |
-    #.     |          |
-    #       ----------   ya 
+    if bonding:
+        # -- Creating the bounding box --
+        # ------------------------------------------------------------
+        #      xa.       xb
+        #       ----------   yb
+        #      |          |
+        #.     |          |
+        #       ----------   ya
 
-    xspace = 10
-    yspace = 10
-    xa = 0
-    xb = Ltot
-    ya = 0
-    yb = H_long 
+        xspace = 10
+        yspace = 10
+        xa = 0
+        xb = Ltot
+        ya = 0
+        yb = H_long
 
-    x1 = [xa+xspace, xb + xspace, xb -xspace, xa-xspace]
-    x2 = [xb - xspace, xb + xspace , xa + xspace, xa-xspace]
-    y1 = [yb+yspace, yb-yspace, ya-yspace, ya+yspace]
-    y2 = [yb+yspace, ya+yspace, ya-yspace, yb-yspace] 
+        x1 = [xa+xspace, xb + xspace, xb -xspace, xa-xspace]
+        x2 = [xb - xspace, xb + xspace , xa + xspace, xa-xspace]
+        y1 = [yb+yspace, yb-yspace, ya-yspace, ya+yspace]
+        y2 = [yb+yspace, ya+yspace, ya-yspace, yb-yspace]
 
-    Wbd = 1
-    name_out.append('BoundingVernier' + Name + str(ncell))
-    fid.write('<BoundingVernier' + Name + str(ncell) + ' struct>\n')
-    for ii in range(0, len(x1)):
-        fid.write('\t<{} {} '.format(x1[ii], y1[ii]) +
-                  '{} {} '.format(x2[ii], y2[ii]) +
-                  '{} 0 '.format(Wbd) +
-                  '0 0 waveguide>\n')
+        Wbd = 1
+        name_out.append('BoundingVernier' + Name + str(ncell))
+        fid.write('<BoundingVernier' + Name + str(ncell) + ' struct>\n')
+        for ii in range(0, len(x1)):
+            fid.write('\t<{} {} '.format(x1[ii], y1[ii]) +
+                      '{} {} '.format(x2[ii], y2[ii]) +
+                      '{} 0 '.format(Wbd) +
+                      '0 0 waveguide>\n')
 
-    # -- Close the boudning box with 90° bended --
-    # ------------------------------------------------------------
-    x1 = [xspace, xspace, Ltot-xspace, Ltot-xspace]
-    x2 = [-xspace, -xspace, Ltot+xspace, Ltot+xspace]
-    y1 = [-yspace, H_long + yspace, H_long+yspace, -yspace]
-    y2 = [yspace, H_long - yspace, H_long-yspace, yspace]
-    name_out.append('BoundingVernierClose' + Name + str(ncell))
-    fid.write('<BoundingVernierClose' + Name + str(ncell) + ' struct>\n')
-    for ii in range(0, len(x1)):
-        fid.write('\t<{} {} '.format(x1[ii], y1[ii]) +
-                  '{} {} '.format(x2[ii], y2[ii]) +
-                  '{} 0 '.format(Wbd) +
-                  '90degreeBend>\n')
+        # -- Close the boudning box with 90° bended --
+        # ------------------------------------------------------------
+
+        x1 = [xspace, xspace, Ltot-xspace, Ltot-xspace]
+        x2 = [-xspace, -xspace, Ltot+xspace, Ltot+xspace]
+        y1 = [-yspace, H_long + yspace, H_long+yspace, -yspace]
+        y2 = [yspace, H_long - yspace, H_long-yspace, yspace]
+        name_out.append('BoundingVernierClose' + Name + str(ncell))
+        fid.write('<BoundingVernierClose' + Name + str(ncell) + ' struct>\n')
+        for ii in range(0, len(x1)):
+            fid.write('\t<{} {} '.format(x1[ii], y1[ii]) +
+                      '{} {} '.format(x2[ii], y2[ii]) +
+                      '{} 0 '.format(Wbd) +
+                      '90degreeBend>\n')
 
 #     fprintf(fid,['<0 -5 -5 0 1 0 90degreeBend>\n']); %Bottom left curve of blocking box
 # fprintf(fid,['<205 -5 210 0 1 0 90degreeBend>\n']); %Bottom right curve of blocking box
@@ -101,9 +104,9 @@ def CreateVernier(fid, param, ncell):
                   '{} 0 1 '.format(shortspace) +
                   'arrayRect>\n')
 
-   
 
-    
+
+
     # fprintf(fid,'\t<0 -5 205 -5 1 0 0 0 waveguide>\n');      %Bottom straight
     # fprintf(fid,'\t<210 0 310 0 1 90 0 0 waveguide>\n');    %Right straight
     # fprintf(fid,'\t<205 105 0 105 1 0 0 0 waveguide>\n');    %Top straight
@@ -115,7 +118,7 @@ def CreateVernier(fid, param, ncell):
 
 
 
-    # -- Wrap up everything -- 
+    # -- Wrap up everything --
     # ------------------------------------------------------------
     fid.write('<VernierFull' + Name + '_' + str(ncell) +
               ' struct>\n')

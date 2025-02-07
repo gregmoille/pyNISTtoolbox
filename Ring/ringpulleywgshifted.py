@@ -1,47 +1,96 @@
 import numpy as np
 from copy import copy
-from NISTgenerator.Port import CreateThroughPort, CreateThroughPortTilted, CreateThroughPortCurveS
+import re
+import pandas as pd
+from NISTgenerator.Port import (
+    CreateThroughPort,
+    CreateThroughPortTilted,
+    CreateThroughPortCurveS,
+)
 from NISTgenerator.Misc.label import CreateLabel
+from NISTgenerator.Misc.heater import LigentecHeater
+
 
 def CreateWGRingPulleyWgShifted(fid, param, ncell):
-    Name = param.get('name', None)
-    layer = param.get('layer', None)
-    layerWg = param.get('layerWg', layer)
-    layerTapper = param.get('layerTapper', layer)
-    layerLabel = param.get('layerLabel', layer)
-    RR = param.get('RR', None)
-    RW = param.get('RW', None)
-    G = param.get('G', None)
-    box = param.get('box', False)
-    font = param.get('font', 'Arial')
-    fontsize = param.get('fontsize', 8)
-    LC = param.get('Lc', None)
-    x0 = param.get('x0', None)
-    y0 = param.get('y0', None)
-    W = param.get('W', None)
-    tot_length =  param.get('tot_length', 2000)
-    αc0 = param.get('alpha_connect', np.pi/3)
+    Name = param.get("name", None)
+    layer = param.get("layer", None)
+    datatype = param.get("datatype", 0)
+    layerWg = param.get("layerWg", layer)
+    layerTapper = param.get("layerTapper", layerWg)
+    layerLabel = param.get("layerLabel", layerTapper)
+    layerTrench = param.get("layerTrench", layerWg)
+    coupler_trench = param.get("coupler_trench", False)
+    # print(f'layerWg {layerWg}')
+    # print(f'layerTapper {layerTapper}')
+    # print(f'layerLabel {layerLabel}')
 
-    x_pos_text = param.get('x_pos_text', -1000)
-    y_pos_text = param.get('y_pos_text', -15)
-    nr = param.get('nr', 1000)
-    inp_WG_L = param.get('inp_WG_L', None)
-    exp_w = param.get('exp_w', None)
-    font_size_pattern = param.get('font_size_pattern', 10)
-    y_shift = param.get('y_shift', 0)
-    x_shift = param.get('x_shift', 0)
-    xdec = param.get('xdec', 0)
-    input_inv_taper_length = param.get('input_inv_taper_length', None)
-    input_st_length = param.get('input_st_length', None)
-    input_inv_taper_st_length = param.get('input_inv_taper_st_length', None)
-    input_inv_taper_W = param.get('input_inv_taper_W', None)
-    output_st_length = param.get('output_st_length', None)
-    output_inv_taper_st_length = param.get('output_inv_taper_st_length', None)
-    output_inv_taper_length = param.get('output_inv_taper_length', None)
-    output_inv_taper_W = param.get('output_inv_taper_W', None)
-    left_label = param.get('left_label', False)
-    x_text_left = param.get('x_text_left', 0)
+    RR = param.get("RR", None)
+    RW = param.get("RW", None)
+    G = param.get("G", None)
+    inner_RR = param.get("inner_RR", None)
+    inner_RW = param.get("inner_RW", None)
+    inner_G = param.get("inner_G", None)
+
+    Drop = param.get("Drop", None)
+    out_sep = param.get("out_sep", 5)
+    Gdimer = param.get("Gdimer", None)
+
+    loopback = param.get("loopback", False)
+    box = param.get("box", False)
+    font = param.get("font", "Monaspace Argon Var")
+    fontsize = param.get("fontsize", 8)
+    LC = param.get("Lc", 0)
+    x0 = param.get("x0", None)
+    y0 = param.get("y0", None)
+    W = param.get("W", None)
+    tot_length = param.get("tot_length", 2000)
+    αc0 = param.get("alpha_connect", np.pi / 3)
+
+    x_pos_text = param.get("x_pos_text", -1000)
+    y_pos_text = param.get("y_pos_text", -12)
+    nr = param.get("nr", 1000)
+    inp_WG_L = param.get("inp_WG_L", None)
+    exp_w = param.get("exp_w", None)
+    font_size_pattern = param.get("font_size_pattern", 10)
+    y_shift = param.get("y_shift", 0)
+    x_shift = param.get("x_shift", 0)
+    xdec = param.get("xdec", 0)
+    S_in_shift = param.get("S_in_shift", 0)
+    S_shrink = param.get("S_shrink", 0)
+    input_inv_taper_length = param.get("input_inv_taper_length", None)
+    input_st_length = param.get("input_st_length", None)
+    input_inv_taper_st_length = param.get("input_inv_taper_st_length", None)
+    input_inv_taper_W = param.get("input_inv_taper_W", None)
+    input_surplus_taper = param.get("input_surplus_taper", None)
+    output_st_length = param.get("output_st_length", None)
+    output_inv_taper_st_length = param.get("output_inv_taper_st_length", None)
+    output_inv_taper_length = param.get("output_inv_taper_length", None)
+    output_inv_taper_W = param.get("output_inv_taper_W", None)
+
+    heater = param.get("heater", False)
+    Wopen = param.get("Wopen", 35)
+    Wvia = param.get("Wvia", 0.36)
+    WviaBlock = param.get("WviaBlock", None)
+    Nvia = param.get("Nvia", 4)
+    layerVia = param.get("layerVia", None)
+    layerHeater = param.get("layerHeater", None)
+    layerPad = param.get("layerPad", None)
+    layerOpening = param.get("layerOpening", None)
+    
+    
+    left_label = param.get("left_label", False)
+    x_text_left = param.get("x_text_left", 0)
+    cap = param.get("cap", False)
+    resist = param.get("resist", "negative")
+    do_field = param.get("doField", False)
+
+    carriage_shift = param.get("carriage_shift", 0)
+    CosAmp = param.get("CosAmp", None)
+    CosPhase = param.get("CosPhase", 0)
+    Nmodulation = param.get("Nmodulation", 0)
+    theta_mod = param.get("theta_mod", 2*np.pi)
     params_port = copy(param)
+    angled_facets = param.get("angled_facets", None)
 
     if not type(G) == list:
         G = [G]
@@ -53,6 +102,15 @@ def CreateWGRingPulleyWgShifted(fid, param, ncell):
         LC = [LC]
     if not type(W) == list:
         W = [W]
+    if not type(Nmodulation) == list:
+        Nmodulation = [Nmodulation]
+    if not type(CosAmp) == list:
+        CosAmp = [CosAmp]
+    if not type(CosPhase) == list:
+        CosPhase = [CosPhase]
+    if not type(Gdimer) == list:
+        Gdimer = [Gdimer]
+
     name_out = []
 
     cnt = 0
@@ -61,259 +119,637 @@ def CreateWGRingPulleyWgShifted(fid, param, ncell):
     name_loop = []
     y_pos = y0 - y_shift
     RRmax = np.max(RR)
+    field_box = 30
+    prev_txt_RR = ""
+    prev_txt_RW = ""
+    prev_txt_G = ""
+    prev_txt_Gdimer = ""
+    prev_txt_W = ""
+    prev_txt_LC = ""
+    prev_txt_Nmod = ""
+    prev_txt_CosAmp = ""
+    prev_txt_CosPhase = ""
+
+    txt_dev = pd.DataFrame(
+        dict(
+            RW=[0, 1e3, prev_txt_RW, prev_txt_RW, len(RW)],
+            G=[0, 1e3, prev_txt_G, prev_txt_G, len(G)],
+            Gdim=[0, 1e3, prev_txt_Gdimer, prev_txt_Gdimer, len(Gdimer)],
+            Lc=[0, 1, prev_txt_LC, prev_txt_LC, len(LC)],
+            W=[0, 1e3, prev_txt_W, prev_txt_W, len(W)],
+            RR=[0, 1, prev_txt_RR, prev_txt_RR, len(RR)],
+            M=[0, 1, prev_txt_Nmod, prev_txt_Nmod, len(Nmodulation)],
+            A=[0, 1e3, prev_txt_CosAmp, prev_txt_CosAmp, len(CosAmp)],
+            Φ=[0, 180 / np.pi, prev_txt_CosPhase, prev_txt_CosPhase, len(CosPhase)],
+        )
+    )
+    txt_dev = txt_dev.T
+    txt_dev.columns = ["val", "scale", "prev", "current", "len"]
+
     for lc in LC:
         for g in G:
-            for rw in RW:
-                for rrOut in RR:
-                    for w in W:
-                        rr  = rrOut - rw
-                        # print('Creating Pulley WG coupled to RR: ')
-                        # print('On the layer {}'.format(layer))
-                        # print('RR={} RW={} '.format(rrOut, rw) +
-                        #       'g={} W={} Lc={}\n'.format(g, w,lc))
+            for gdimer in Gdimer:
+                for rw in RW:
+                    for rrOut in RR:
+                        for w in W:
+                            for nmod in Nmodulation:
+                                for cos_amp in CosAmp:
+                                    for cos_phase in CosPhase:
+                                        rr = rrOut - rw
+                                        r1 = rr + g + w / 2
+                                        θ = r1 * np.cos(lc / (2 * r1))
+                                        Δ = r1 - (rr + g + w / 2)
+
+                                        name_out = []
+
+                                        # Create the First Through port
+                                        # αc = αc0
+                                        Ls = inp_WG_L
+                                        Ls = 10
+                                        xstart = tot_length / 2
+                                        input_st_length = (
+                                            xstart - input_inv_taper_length - Ls
+                                        )
+                                        y_pos = y_shift + y_pos
+                                        rext = rr + rw + g + w / 2
+
+                                        WG_through_port_y_pos = y_pos
+                                        Rdec = (
+                                            +rr
+                                            + rw
+                                            + g
+                                            + w / 2
+                                            - 2 * rext * (1 - np.cos(lc / (rext * 2)))
+                                        )  # - 2
+
+                                        x_pos0 = xdec - Ls - input_st_length
+                                        if cnt_shift > 0:
+                                            x_pos = x_shift * cnt_shift + x_pos0
+                                            x_sleft = x_pos0
+                                            xrconnect = (
+                                                x_pos + 2 * np.sin(lc / (rext) / 2) * rext
+                                            )
+
+                                            x_left = x0 - inp_WG_L - input_st_length
+                                            x_sleft_out = x_pos - x_shift
+                                            # y_sleft = y_pos - 2 * RRmax + (rr - Rdec) - rw
+                                            y_sleft = y_pos + (rr + +2*g + w/2 - Rdec) - y_shift - 2*RRmax - 7#+ (rr - Rdec) - rw
+
+                                            if (
+                                                xrconnect
+                                                > tot_length / 2 - input_inv_taper_length
+                                            ):
+                                                y_pos = y_sleft - carriage_shift
+                                                WG_through_port_y_pos = (
+                                                    y_pos  # WG_through_port_y_pos - 2*RRmax
+                                                )
+                                                cnt_shift = 0
+                                                x_pos = x_pos0
+                                                x_left = (
+                                                    x_pos
+                                                    - 2 * np.sin(lc / (rext) / 2) * rext
+                                                )
+                                                x_sleft = 0
+                                                # x_right = x_pos + 2 * np.sin(lc / (rext) / 2) * rext
+                                                y_sleft = 0
+                                                x_sleft_out = 0
+                                                xrconnect = (
+                                                    x_pos
+                                                    + 2 * np.sin(lc / (rext) / 2) * rext
+                                                )
+
+                                        else:
+                                            x_pos = x_pos0
+                                            x_left = (
+                                                x_pos - 2 * np.sin(lc / (rext) / 2) * rext
+                                            )
+                                            x_sleft = 0
+                                            # x_right = x_pos - (cx1 - 2 * rr)
+                                            y_sleft = 0
+                                            x_sleft_out = 0
+                                            xrconnect = (
+                                                x_pos + 2 * np.sin(lc / (rext) / 2) * rext
+                                            )
+
+                                        fid.write(str(layer) + " layer\n")
+                                        fid.write(str(datatype) + " dataType\n")
+
+                                        # name_out.append(Name + "C" + str(ncell) + "_" + str(cnt))
+
+                                        dec = (
+                                            rr
+                                            - r1 * (1 - np.cos(lc / (r1) / 2)) * (r1)
+                                            + 1.52888
+                                        )
+
+                                        if resist == "negative":
+                                            if cos_amp is not None:
+                                                Des = re.findall("(D\d+).*", Name)
+                                                if len(Des) > 0:
+                                                    DesName = Des[0] + f"C{ncell}"
+                                                else:
+                                                    DesName = ""
+
+                                                fid.write(
+                                                    f"<{DesName}Toremove{cnt} struct>\n"
+                                                )
+                                                fid.write(str(3) + " layer\n")
+                                                fid.write(
+                                                    "\t<{:.3f} {:.3f} ".format(
+                                                        x_pos, y_pos - Rdec
+                                                    )
+                                                    + "{} {} ".format(0, rr + rw)
+                                                    + "{} {} ".format(g, lc)
+                                                    + "{} ".format(w)
+                                                    + "{} ".format(0)
+                                                    + "0 ringPulleyLCAV>\n"
+                                                )
+
+                                                fid.write(str(4) + " layer\n\t")
+                                                if nmod < 1:
+                                                        Npts = 600
+                                                else:
+                                                    Npts = int(10000 * rr/23)
+                                                # print(f"theta_mod : {theta_mod/np.pi}")
+                                                if theta_mod == 2*np.pi:
+                                                    fid.write(
+                                                        "\t{} {} ".format(x_pos, y_pos - Rdec)
+                                                        + "{} {} ".format(
+                                                            0,
+                                                            rr,
+                                                        )
+                                                        + f"{2 * nmod:.0f} "
+                                                        + f"{cos_amp} "
+                                                        + f"{Npts} {cos_phase*180/np.pi:.3f} torusWaveIn\n"
+                                                    )
+                                                else:
+                                                    θ = np.linspace(0, 2 * np.pi, Npts)
+                                                    xmod = (rr) * np.cos(θ)
+                                                    ymod = (rr) * np.sin(θ)
+                                                    mask_mod = θ >= theta_mod
+                                                    θmask = θ[mask_mod]
+                                                    xmod[mask_mod] =  (rr + cos_amp*np.sin(θmask*nmod*2)) * np.cos(θmask)
+                                                    ymod[mask_mod] =  (rr + cos_amp*np.sin(θmask*2*nmod)) * np.sin(θmask)
+                                                    st = ""
+                                                    for xx, yy in zip(xmod, ymod):
+                                                        st += f"{xx + x_pos} {yy + y_pos - Rdec:.5f} "
+                                                    st += "points2shape"
+                                                    fid.write("\t{}\n".format(st))
+
+                                                if gdimer is not None:
+                                                    ydim_shift = -5
+                                                    xdim = np.sqrt(
+                                                        (2 * (rr + rw) + gdimer) ** 2
+                                                        - ydim_shift**2
+                                                    )
+                                                    fid.write(str(3) + " layer\n")
+                                                    fid.write(
+                                                        f"<{x_pos - xdim:.3f} {y_pos - Rdec + ydim_shift:.3f} "
+                                                        + f"{0} {rr+rw} 0 0 0 0 "
+                                                        + "0 ringPulleyLCAV>\n"
+                                                    )
+                                                    fid.write(str(4) + " layer\n\t")
+                                                    fid.write(
+                                                        "\t{} {} ".format(
+                                                            x_pos - xdim,
+                                                            y_pos - Rdec + ydim_shift,
+                                                        )
+                                                        + "{} {} ".format(
+                                                            0,
+                                                            rr,
+                                                        )
+                                                        + f"{2 * nmod:.0f} "
+                                                        + f"{cos_amp} "
+                                                        + f"{Npts} {-cos_phase*180/np.pi:.3f} torusWaveIn\n"
+                                                    )
+
+                                                fid.write(
+                                                    f"<{DesName}innerRing {DesName}Toremove{cnt} {4} genArea>\n"
+                                                )
+                                                fid.write(
+                                                    f"<{DesName}outerRing {DesName}Toremove{cnt} {3} genArea>\n"
+                                                )
+                                                name_out += [f"{Name}C{ncell}_ring{cnt}"]
+                                                fid.write(
+                                                    f"<{Name}C{ncell}_ring{cnt} struct>\n"
+                                                )
+                                                fid.write(
+                                                    f"<{DesName}outerRing {DesName}innerRing {layer} XOR>\n"
+                                                )
+                                                fid.write(str(layer) + " layer\n")
+                                            else:
+                                                name_out += [f"{Name}C{ncell}_{cnt}"]
+                                                fid.write(
+                                                    f"<{Name}C{ncell}_{cnt} struct>\n"
+                                                )
+                                                if layer == layerWg:
+                                                    fid.write(
+                                                        f"<{x_pos:.3f} {y_pos - Rdec:.3f} "
+                                                        + f"{rr} {rw} {g} {lc} {w} 0 "
+                                                        + "0 ringPulleyLCAV>\n"
+                                                    )
+                                                else:
+                                                    fid.write(str(layerWg) + " layer\n")
+                                                    fid.write(
+                                                        f"<{x_pos:.3f} {y_pos - Rdec:.3f} "
+                                                        + f"{rr+rw} {0} {g} {lc} {w} 0 "
+                                                        + "0 ringPulleyLCAV>\n"
+                                                    )
+                                                    fid.write(str(layer) + " layer\n")
+                                                    fid.write(
+                                                        f"<{x_pos:.3f} {y_pos - Rdec:.3f} "
+                                                        + f"{rr} {rw} {g} {lc} {0} 0 "
+                                                        + "0 ringPulleyLCAV>\n"
+                                                    )
 
 
-                        r1 = rr + g +w/2
-                        θ = r1*np.cos(lc/(2*r1))
+                                                if inner_RR is not None:
+                                                    y_aux = (
+                                                        y_pos
+                                                        - Rdec
+                                                        - rr
+                                                        + rw
+                                                        + inner_RR
+                                                        + inner_G
+                                                    )
+                                                    fid.write(
+                                                        f"<{x_pos:.3f} {y_aux:.3f} "
+                                                        + f"{inner_RR} {inner_RW} {0} {0} {0} 0 "
+                                                        + "0 ringPulleyLCAV>\n"
+                                                    )
+                                                if gdimer is not None:
+                                                    ydim_shift = -5
+                                                    xdim = np.sqrt(
+                                                        (2 * (rr + rw) + gdimer) ** 2
+                                                        - ydim_shift**2
+                                                    )
 
-                        Δ = r1- (rr + g + w/2)
+                                                    fid.write(
+                                                        f"<{x_pos - xdim:.3f} {y_pos - Rdec + ydim_shift:.3f} "
+                                                        + f"{rr} {rw} 0 0 0 0 "
+                                                        + "0 ringPulleyLCAV>\n"
+                                                    )
+                                                    if inner_RR is not None:
+                                                        y_aux_dim = (
+                                                            y_pos
+                                                            - Rdec
+                                                            + ydim_shift
+                                                            + rr
+                                                            - rw
+                                                            - inner_RR
+                                                            - inner_G
+                                                        )
+                                                        fid.write(
+                                                            f"<{x_pos - xdim:.3f} {y_aux_dim:.3f} "
+                                                            + f"{inner_RR} {inner_RW} {0} {0} {0} 0 "
+                                                            + "0 ringPulleyLCAV>\n"
+                                                        )
 
-                        # WG_through_port_y_pos = y_pos + (rr++w/2) - rr/2 * rr/r1
+                                            if heater:
+                                                params_heater = copy(param)
+                                                if gdimer is not None:
+                                                    if rr > 100:
+                                                        params_heater[
+                                                            "theta_heat_deg"
+                                                        ] = 120
+                                                        params_heater["rot"] = 120
+                                                    else:
+                                                        params_heater[
+                                                            "theta_heat_deg"
+                                                        ] = 140
+                                                        params_heater["rot"] = 110
+                                                    params_heater["pad_loc"] = "top"
+                                                if rr > 200:
+                                                    params_heater["pad_loc"] = "left"
+                                                    params_heater["theta_heat_deg"] = 20
+                                                    params_heater["rot"] = -10
+                                                params_heater["name"] = Name + str(cnt)
+                                                params_heater["Wopen"] = Wopen
+                                                params_heater["x_pos"] = x_pos
+                                                params_heater["y_pos"] = y_pos - Rdec
+                                                params_heater["rw"] = rw
+                                                params_heater["rr"] = rr
+                                                params_heater["Wvia"] = Wvia
+                                                params_heater["Nvia"] = Nvia
+                                                params_heater["WviaBlock"] = WviaBlock
+                                                params_heater["layerVia"] = layerVia
+                                                params_heater["layerHeater"] = layerHeater
+                                                params_heater["layerPad"] = layerPad
+                                                params_heater["layerOpening"] = layerOpening
+                                                
+                                                name_out += LigentecHeater(
+                                                    fid, params_heater, ncell, cnt
+                                                )
+                                                fid.write(str(layer) + " layer\n")
+                                                fid.write(str(datatype) + " dataType\n")
 
-                        # WG_through_port_y_pos = y_pos+rr+g+w/2+-2 * \
-                        #     (1-np.cos(lc/(rr+g+w/2)/2))*(rr+g+w/2)
-                        x_xtx = x0 + x_pos_text
+                                                if gdimer is not None:
+                                                    params_heater2 = copy(params_heater)
+                                                    if rr > 100:
+                                                        params_heater2["rot"] = -60
+                                                    else:
+                                                        params_heater2["rot"] = -70
+                                                    params_heater2["name"] = (
+                                                        Name + str(cnt) + "dim"
+                                                    )
+                                                    params_heater2["x_pos"] = x_pos - xdim
+                                                    params_heater2["y_pos"] = (
+                                                        y_pos - Rdec + ydim_shift
+                                                    )
+                                                    name_out += LigentecHeater(
+                                                        fid, params_heater2, ncell, cnt
+                                                    )
+                                                    fid.write(str(layer) + " layer\n")
+                                                    fid.write(str(datatype) + " dataType\n")
 
-                        name_out = []
+                                        else:
+                                            if cos_amp is not None:
+                                                pass
+                                            else:
+                                                fid.write(
+                                                    "<{} {} ".format(x_pos, y_pos - Rdec)
+                                                    + "{} {} {} ".format(rr + rw, rw, exp_w)
+                                                    + "{} {} ".format(g, lc)
+                                                    + "{} {} ".format(w, exp_w)
+                                                    + "{} ".format(0)
+                                                    + "0 ringPulleyInvPosLCAV>\n"
+                                                )
 
-                        # Create the First Through port
+                                        if do_field:
+                                            fid.write(str(field_box + cnt) + " layer\n")
+                                            fid.write(
+                                                f"{x_pos-1.25*rr} {y_pos-Rdec-1.25*rr} "
+                                                + f"{2.5*rr} {2.5*rr} "
+                                                + "0 0 "
+                                                + "0 roundrect\n"
+                                            )
+                                            fid.write(str(layer) + " layer\n")
 
-                        αc = αc0
-                        # Ls = r1* np.cos(np.pi/2 - 0.5*lc/r1 - αc/2)/np.cos(αc/2) + 2*rr
-                        Ls = inp_WG_L#-2*np.sin(lc/(rr+g+w/2)/2)*(rr+g+w/2)
-                        xstart =  tot_length/2
-                        input_st_length = xstart - input_inv_taper_length - Ls
-                        # Y0 = y_shift + y_pos
-                        y_pos = y_shift + y_pos
-                        # y_posR = copy(y_pos)
-                        rext = rr + rw + g+ w/2
+                                        # -- Port
+                                        yc = y_pos - (r1 - rr - g - w)
+                                        y_txt = WG_through_port_y_pos + y_pos_text
+                                        params_port["name"] = Name + str(cnt)
+                                        params_port["cnt_shift"] = cnt_shift
+                                        params_port["loopback"] = loopback
+                                        params_port["Drop"] = Drop
+                                        params_port["Gdimer"] = gdimer
+                                        # if Drop:
+                                        #     params_port["out_sep"] = 3.5
+                                        params_port["y_drop"] = (
+                                            y_pos - Rdec - (rr) - rw - w / 2 - g
+                                        )
+                                        if gdimer is not None:
+                                            params_port["y_drop"] += ydim_shift
+                                        params_port["RR"] = rr
+                                        params_port["G"] = g
+                                        if gdimer is not None:
+                                            params_port["G"] += ydim_shift
+                                        params_port["RW"] = rw
+                                        params_port["W"] = w
+                                        params_port["inp_WG_L"] = Ls
+                                        params_port["input_st_length"] = input_st_length
+                                        params_port["resist"] = resist
+                                        params_port[
+                                            "input_surplus_taper"
+                                        ] = input_surplus_taper
+                                        params_port[
+                                            "output_surplus_taper"
+                                        ] = input_surplus_taper
+                                        params_port["cap"] = cap
+                                        params_port["layerWg"] = layerWg
+                                        params_port["do_field"] = do_field
+                                        params_port["layer_field"] = field_box + cnt
+                                        params_port["layerTapper"] = layerTapper
+                                        params_port["layerTrench"] = layerTrench
+                                        params_port["coupler_trench"] = coupler_trench
+                                        params_port["x2_in_wg"] = x_left
+                                        params_port["x1_out_wg"] = xrconnect
+                                        if gdimer is not None:
+                                            params_port["x1_out_wg"] -= xdim
+                                            params_port["x1_out_wg_back"] = xrconnect
+                                        params_port["xin_c"] = x_sleft 
+                                        if gdimer is not None:
+                                            params_port["xin_c"] -= xdim
+                                        params_port["yin_c"] = y_sleft
+                                        params_port["S_in_shift"] = S_in_shift
+                                        params_port["S_shrink"] = S_shrink
+                                        params_port["x_sleft_out"] = x_sleft_out
+                                        params_port["x_shift"] = x_shift
+                                        # params_port["Slength"] = Slenght
+                                        params_port["xR"] = x_pos - np.sin(
+                                            lc / (rr + g + w / 2) / 2
+                                        ) * (rr + g + w / 2)
+                                        params_port[
+                                            "WG_through_port_y_pos"
+                                        ] = WG_through_port_y_pos
 
-                        WG_through_port_y_pos = y_pos
-                        Rdec = + rr + rw + g+ w/2  - 2*rext*(1-np.cos(lc/(rext*2))) #- 2
+                                        if cnt_shift > 0:
+                                            name_out += CreateThroughPortCurveS(
+                                                fid, params_port, ncell, cnt
+                                            )
+                                        else:
 
-                        x_pos0 = xdec -  Ls - input_st_length
-                        cx1 = 0 - r1* np.cos(np.pi/2 - 0.5*lc/r1 - αc/2)/np.cos(αc/2)
-                        if cnt_shift>0:
-                            x_pos = x_shift * cnt_shift + x_pos0# - (cx1 - 3*rr)
-                            xpos1 = x_shift  + x_pos0 - (cx1 - 3*rr)
-                            # x_sleft = xpos1 - 2*x_shift -rr
-                            x_sleft = x_pos0
-                            #
-                            # x_left = x_sleft - x_shift -rr
-                            x_left = x0 - inp_WG_L - input_st_length
-                            x_sleft_out = x_pos - x_shift
-                            x_right = x_pos - (cx1 - rr)
-                            y_sleft = y_pos -2*RRmax + (rr-Rdec) - rw
+                                            name_out += CreateThroughPort(
+                                                fid, params_port, ncell, cnt
+                                            )
+                                        if not loopback:
+                                            # # conenct left
+                                            αc = αc0
+                                            x1 = x_pos - 2 * np.sin(lc / (rext) / 2) * rext
+                                            Sdimshift = 0
+                                            if gdimer is not None:
+                                                Sdimshift = -xdim
+                                                # fid.write(str(layer) + " layer\n")
+                                                # fid.write(
+                                                #         f"\t<{x1:.3f} {WG_through_port_y_pos:.3f} "
+                                                #         + f"{x1 + 2*rr+5:.3f} {WG_through_port_y_pos:.3f} "
+                                                #         + f"{w:.3f} 0 0 0 waveguide>\n"
+                                                #     )
+                                            if cnt_shift > 0:
+                                                αc = 2 * αc
 
-                            cx1 = x_left + (x_shift -rr)
-                            cy1 = y_pos + (θ - Δ)/1.25
-                            cx2 = cx1
-                            cy2 = y_pos - rr #y_pos + (rr++w/2) - rr*rr/r1
+                                                y1 = yc + (r1 - w / 2) * np.cos(
+                                                    0.5 * lc / r1
+                                                )
+                                                cx1 = (
+                                                    x_pos - 2 * rr
+                                                )   - r1* np.cos(np.pi/2 - 0.5*lc/r1 - αc/2)/np.cos(αc/2)
+                                                cy1 = yc + r1 * np.sin(
+                                                    np.pi / 2 - 0.5 * lc / r1 - αc / 2
+                                                ) / np.cos(αc / 2)
+                                                cx2 = x_pos - x_shift + rr
+                                                cy2 = y_sleft
+                                                x2 = x_pos - x_shift
+                                                y2 = cy2
+                                                fid.write(str(layerWg) + " layer\n")
+                                                if resist == "negative":
+                                                    # pass\
+                                                    if np.abs(S_shrink) < 1e-3:
+                                                        fid.write(
+                                                            f"\t<{x2-S_shrink:.3f} {y2:.3f} "
+                                                            + f"{x1 + Sdimshift+S_shrink:.3f} {WG_through_port_y_pos:.3f} "
+                                                            + f"{w:.3f} {0} "
+                                                            + "sBend>\n"
+                                                        )
+                                                    if np.abs(S_shrink) > 1e-3:
+                                                        S_shrink_eq = S_shrink * np.cos(4*lc/(np.pi*rr))
+                                                        S_shrink_bot = S_shrink/np.cos(3*lc/(np.pi*rr))
+                                                        fid.write(
+                                                            f"\t<{x2-S_shrink_bot:.3f} {y2:.3f} "
+                                                            + f"{x1 + Sdimshift+S_shrink_eq:.3f} {WG_through_port_y_pos:.3f} "
+                                                            + f"{w:.3f} {0} "
+                                                            + "sBend>\n"
+                                                        )
+                                                        
+                                                        fid.write(
+                                                            f"\t<{x2-S_shrink_bot:.3f} {y2:.3f} "
+                                                            + f"{x2:.3f} {y2:.3f} "
+                                                            + f"{w:.3f} 0 0 0 waveguide>\n"
+                                                        )
+                                                        fid.write(
+                                                            f"\t<{x1 + Sdimshift+ S_shrink_eq:.3f} {WG_through_port_y_pos:.3f} "
+                                                            + f"{x1 + Sdimshift:.3f} {WG_through_port_y_pos:.3f} "
+                                                            + f"{w:.3f} 0 0 0 waveguide>\n"
+                                                        )
+                                                else:
+                                                    fid.write(
+                                                        "\t<{} {} ".format(x2, y2)
+                                                        + "{} {} ".format(
+                                                            x1 - x2 - Ls,
+                                                            WG_through_port_y_pos - y2,
+                                                        )
+                                                        + "{} {} {} ".format(w, exp_w, 0)
+                                                        + "sBendInv>\n"
+                                                    )
+                                                fid.write(str(layer) + " layer\n")
+                                            if do_field:
+                                                fid.write(str(field_box + cnt) + " layer\n")
+                                                Lsbend = (x1 - x2) - 1.25 * rr
+                                                # xc = x_pos-1.5*rr - Lsbend
+                                                fid.write(
+                                                    f"{x2} {y_pos-Rdec-1.25*rr} "
+                                                    + f"{Lsbend} {2.5*rr} "
+                                                    + "0 0 "
+                                                    + "0 roundrect\n"
+                                                )
+                                                fid.write(
+                                                    "\t<{} {} ".format(x2, y2)
+                                                    + "{} {} ".format(
+                                                        x1 - Ls, WG_through_port_y_pos
+                                                    )
+                                                    + "{} {} ".format(30, 0)
+                                                    + "sBend>\n"
+                                                )
+                                                fid.write(str(layer) + " layer\n")
+                                        else:
+                                            # Slenght = x1 - x2
+                                            fid.write(str(layerWg) + " layer\n")
+                                            if do_field:
+                                                Lright = np.abs(-tot_length / 2 + (x1 - Ls))
+                                                # print(Lright)
+                                                Nbox = int(np.floor(Lright / 500))
+                                                # print(Nbox)
+                                                fid.write(str(field_box + cnt) + " layer\n")
+                                                for nf in range(Nbox - 1):
+                                                    xc = x_pos - 1.25 * rr
+                                                    fid.write(
+                                                        f"{xc - (nf+1)*500} {WG_through_port_y_pos-15  } "
+                                                        + f"{500} {30} "
+                                                        + "0 0 "
+                                                        + "0 roundrect\n"
+                                                    )
+                                                fid.write(str(layer) + " layer\n")
 
-                            if x_right> tot_length/2  - input_inv_taper_length:
-                                cx1 = 0 - r1* np.cos(np.pi/2 - 0.5*lc/r1 - αc/2)/np.cos(αc/2)
-                                y_pos = y_pos - 2*RRmax
-                                WG_through_port_y_pos = WG_through_port_y_pos - 2*RRmax
-                                cnt_shift = 0
-                                # y_pos = y_shift * cnt + y0
-                                # x_pos = x_shift * cnt_shift + x_pos0 - (cx1 - 2*rr)
-                                x_pos = x_pos0
-                                x_left = x_pos  + (cx1 - 2*rr)
-                                x_sleft = 0
-                                x_right = x_pos  - (cx1 - rr)
-                                y_sleft = 0
-                                x_sleft_out = 0
+                                        if do_field:
+                                            Lright = tot_length / 2 - (x1r + Ls)
+                                            # print(Lright)
+                                            Nbox = int(np.ceil(Lright / 500))
+                                            # print(Nbox)
+                                            fid.write(str(field_box + cnt) + " layer\n")
+                                            for nf in range(Nbox):
+                                                xc = x_pos + 1.25 * rr
+                                                fid.write(
+                                                    f"{xc + nf*500} {WG_through_port_y_pos-15  } "
+                                                    + f"{500} {30} "
+                                                    + "0 0 "
+                                                    + "0 roundrect\n"
+                                                )
+                                            fid.write(str(layer) + " layer\n")
 
-                        else:
-                            x_pos = x_pos0 #- (cx1 - 2*rr)
-                            x_left = x_pos + (cx1 - 2*rr)
-                            x_sleft = 0
-                            x_right = x_pos  - (cx1 - 2*rr)
-                            y_sleft = 0
-                            x_sleft_out = 0
+                                        # --- Labels
+                                        txt_dev["val"].loc["RR"] = rrOut
+                                        txt_dev["val"].loc["RW"] = rw
+                                        txt_dev["val"].loc["G"] = g
+                                        txt_dev["val"].loc["Gdim"] = gdimer
+                                        txt_dev["val"].loc["W"] = w
+                                        txt_dev["val"].loc["Lc"] = lc
+                                        txt_dev["val"].loc["M"] = nmod
+                                        txt_dev["val"].loc["A"] = cos_amp
+                                        txt_dev["val"].loc["phi"] = cos_phase
+                                        txt_dev.current = [
+                                            f"{nn}={xx*ss:g}" if xx is not None else ""
+                                            for nn, xx, ss in zip(
+                                                txt_dev.index, txt_dev.val, txt_dev.scale
+                                            )
+                                        ]
+                                        if angled_facets is not None:
+                                            mask = ~(txt_dev.current == txt_dev.prev)
+                                            txt_dev.prev[mask] = txt_dev[mask].current
+                                            txt = " ".join(txt_dev[mask].current.values)
+                                            txt_right = txt
+                                        else:
+                                            mask = txt_dev.len > 1
+                                            txt = copy(
+                                                " ".join(txt_dev[mask].current.values)
+                                            )
+                                            mask = ~(txt_dev.current == txt_dev.prev)
+                                            txt_dev.prev[mask] = txt_dev[mask].current
+                                            txt_right = " ".join(
+                                                txt_dev[mask].current.values
+                                            )
 
-                        fid.write(str(layer) + ' layer\n')
-                        name_out.append(
-                            Name + 'Cell' + str(ncell) + '_' + str(cnt))
-                        fid.write('<' + Name + 'Cell' + str(ncell) +
-                          '_' + str(cnt) + ' struct>\n')
-                        dec = rr - r1*(1-np.cos(lc/(r1)/2))*(r1) + 1.52888
+                                        par_lab = {
+                                            "x_pos_text": x_pos_text,
+                                            "y_pos_text": y_txt,
+                                            # "x_pos_left": x_text_left,
+                                            "txt": txt,
+                                            "name": Name + "_" + str(cnt),
+                                        }
+                                        # if param["angled_facets"]:
+                                        # if par_lab["x_pos_left"] is not None:
+                                        #     par_lab["x_pos_left"] = par_lab[
+                                        #         "x_pos_left"
+                                        #     ] - 6 * len(txt)
 
-                        # fid.write('<{} {} '.format(x_pos, y_pos) +
-                        #           '{} {} {} '.format(rr, rw, nr) +
-                        #           '{} {} {} '.format(g, lc, nr) +
-                        #           '{} {} {} '.format(w, 20, 2) +
-                        #           '0 ringPulleyLC>\n')
+                                        par_lab["layer"] = layerLabel
+                                        par_lab["datatype"] = datatype
+                                        par_lab["box"] = box
+                                        par_lab["font"] = font
+                                        par_lab["foundry"] = "Ligentec"
+                                        par_lab["font_size_pattern"] = fontsize
 
-                        fid.write('<{} {} '.format(x_pos, y_pos-Rdec ) +
-                                  '{} {} '.format(rr, rw) +
-                                  '{} {} '.format(g, lc) +
-                                  '{} '.format(w) +
-                                  '{} '.format(0) +
-                                  '0 ringPulleyLCAV>\n')
+                                        name_out += CreateLabel(fid, par_lab, ncell)
+                                        if x_text_left is not None:
+                                            par_lab_right = copy(par_lab)
+                                            par_lab_right.update(txt=txt_right)
+                                            par_lab_right.update(
+                                                x_pos_text=x_text_left - 4  * len(txt_right) - 50
+                                            )
+                                            name_out += CreateLabel(fid, par_lab_right, ncell)
+                                        cnt_shift += 1
+                                        cnt += 1
+                                        subcell = "{}Rg{}".format(Name, cnt)
+                                        # subcell = subcell.replace('.', 'p')
+                                        fid.write("<" + subcell + " struct>\n")
+                                        for n in name_out:
+                                            fid.write("<" + n + " 0 0 0 1 0 instance>\n")
+                                        fid.write("\n")
+                                        name_loop.append(subcell)
 
-
-                        yc = y_pos -(r1-rr -g - w)
-                        y_txt = WG_through_port_y_pos + y_pos_text
-                        params_port['name'] = Name  + str(cnt)
-                        params_port['RR'] = rr
-                        params_port['G'] = g
-                        params_port['RW'] = rw
-                        params_port['W'] = w
-                        params_port['inp_WG_L'] = Ls
-                        params_port['input_st_length'] = input_st_length
-                        params_port['resist'] = 'negative'
-                        params_port['cap'] = False
-                        params_port['layerWg'] = layerWg
-                        params_port['layerTapper'] = layerTapper
-                        params_port['x2_in_wg'] = x_left
-                        params_port['x1_out_wg'] = x_right
-                        params_port['xin_c'] = x_sleft
-                        params_port['yin_c'] = y_sleft
-                        params_port['x_sleft_out'] = x_sleft_out
-                        params_port['xR'] = x_pos - np.sin(lc/(rr+g+w/2)/2)*(rr+g+w/2)
-                        params_port[
-                            'WG_through_port_y_pos'] = WG_through_port_y_pos
-
-                        if cnt_shift>0:
-                            name_out += CreateThroughPortCurveS(fid, params_port, ncell,cnt)
-                        else:
-                            name_out += CreateThroughPort(fid, params_port, ncell,cnt)
-
-
-                        # # conenct left
-                        αc = αc0
-                        x1 = x_pos - 2*np.sin(lc/(rext)/2)*rext #- 20
-                        if cnt_shift>0:
-                            αc = 2*αc
-                            # x1 = x_pos - (r1-w/2)*np.sin(0.5*lc/r1) #- np.sin(lc/(rr+g+w/2)/2)*(rr+g+w/2)
-
-                            y1 = yc + (r1-w/2)*np.cos(0.5*lc/r1)
-                            cx1 = x_pos - 2*rr #- r1* np.cos(np.pi/2 - 0.5*lc/r1 - αc/2)/np.cos(αc/2)
-                            cy1 = yc + r1 * np.sin(np.pi/2 - 0.5*lc/r1 - αc/2)/np.cos(αc/2)
-                            cx2 = x_pos - x_shift + rr
-                            # cy2 = y_pos - rr - Rdec #y_pos + (rr++w/2) - rr*rr/r1
-                            cy2 = y_sleft
-                            x2 =  x_pos - x_shift
-                        # else:
-                        #     x1 = x_pos #- (r1-w/2)*np.sin(0.5*lc/r1)
-                        #     y1 = yc + (r1-w/2)*np.cos(0.5*lc/r1)
-                        #     cx1 = x_pos - r1* np.cos(np.pi/2 - 0.5*lc/r1 - αc/2)/np.cos(αc/2)
-                        #     cy1 = yc + r1 * np.sin(np.pi/2 - 0.5*lc/r1 - αc/2)/np.cos(αc/2)
-                        #     cx2 = cx1
-                        #     cy2 = y_pos + ((θ - Δ))/1.25
-                        #     x2 =  cx1 - 2*rr
-                            y2 = cy2
-                            fid.write(str(layer) + ' layer\n')
-                            # fid.write('\t<{} {} '.format(x1, WG_through_port_y_pos) +
-                            #           '{} {} '.format(cx1, WG_through_port_y_pos) +
-                            #           '{} {} '.format(cx2, cy2) +
-                            #           '{} {} '.format(x2, y2) +
-                            #           '{} {} '.format(w, 0) +
-                            #           'bezierCurve>\n')
-                            fid.write('\t<{} {} '.format(x2, y2) +
-                                      '{} {} '.format(x1, WG_through_port_y_pos) +
-                                      '{} {} '.format(w, 0) +
-                                      'sBend>\n')
-
-
-                        else:
-                            fid.write(str(layerWg) + ' layer\n')
-                            # fid.write('<' + Name + 'OutWgR_' + 'Cell' +
-                            #           str(ncell) + '_' + str(cnt) + ' struct>\n')
-                            fid.write('<{} {} '.format(x_left, WG_through_port_y_pos) +
-                                    '{} {} '.format(x1, WG_through_port_y_pos) +
-                                    '{} '.format(w) +
-                                      '0 0 0 waveguide>\n')
-
-                         # conenct right
-                        x1r = x_pos + 2*np.sin(lc/(rext)/2)*rext #+ 20
-                        # name_out.append('<' + Name + 'OutWgR_' + 'Cell' + str(ncell) + '_' + str(cnt))
-                        fid.write(str(layerWg) + ' layer\n')
-                        # fid.write('<' + Name + 'OutWgR_' + 'Cell' +
-                        #           str(ncell) + '_' + str(cnt) + ' struct>\n')
-                        fid.write('<{} {} '.format(x1r, WG_through_port_y_pos) +
-                                '{} {} '.format(x_right, WG_through_port_y_pos) +
-                                '{} '.format(w) +
-                                  '0 0 0 waveguide>\n')
-
-
-                        # conen
-                        # Create the label
-                        if len(RR)>1:
-                            txt_RR = 'RR={:.3f}'.format(rrOut)
-                        else:
-                            txt_RR = ''
-
-                        if len(G)>1:
-                            txt_G = ' G={:.3f}'.format(g)
-                        else:
-                            txt_G = ''
-
-                        if len(W)>1:
-                            txt_W = ' W={:.3f}'.format(w)
-                        else:
-                            txt_W= ''
-
-                        if len(RW)>1:
-                            txt_RW = ' RW={:.3f}'.format(rw)
-                        else:
-                            txt_RW = ''
-
-                        if len(LC)>1:
-                            txt_LC = ' LC={:.3f}'.format(lc)
-                        else:
-                            txt_LC = ' '
-
-
-                        txt = txt_RR + txt_RW + txt_G + txt_W + txt_LC
-                        par_lab = {'x_pos_text': x_pos_text,
-                                   'y_pos_text': y_txt,
-                                   'txt': txt,
-                                   'name': Name + 'Cell' + str(ncell) + '_' + str(cnt)}
-                        par_lab['layer'] = layerLabel
-                        par_lab['box'] = box
-                        par_lab['font'] = font
-                        par_lab['font_size_pattern'] = fontsize
-                        name_out += CreateLabel(fid, par_lab, ncell)
-                        if left_label:
-                            # subcell = subcell.replace('.', 'p')
-
-                            par_lab = {'x_pos_text': x_text_left,
-                                       'y_pos_text': y_txt,
-                                       'txt': txt,
-                                       'name': Name + 'Cell' + str(ncell) + '_' + str(cnt)}
-                            par_lab['layer'] = layerLabel
-                            par_lab['box'] = box
-                            par_lab['font'] = font
-                            par_lab['font_size_pattern'] = 8
-                            name_out += CreateLabel(fid, par_lab, ncell)
-
-
-                        subcell = '{}Ring{}'.format(Name, cnt)
-                        # subcell = subcell.replace('.', 'p')
-                        fid.write('<' + subcell + ' struct>\n')
-                        for n in name_out:
-                            fid.write('<' + n + ' 0 0 0 1 0 instance>\n')
-                        fid.write('\n')
-                        name_loop.append(subcell)
-
-                        cnt += 1
-                        cnt_shift += 1
-    fid.write('<'+ Name + str(ncell) + ' struct>\n')
+    fid.write("<" + Name + str(ncell) + " struct>\n")
     for n in name_loop:
-        fid.write('<' + n + ' 0 0 0 1 0 instance>\n')
+        fid.write("<" + n + " 0 0 0 1 0 instance>\n")
 
-    fid.write('\n')
+    fid.write("\n")
 
     return [Name + str(ncell)]

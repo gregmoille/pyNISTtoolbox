@@ -8,3 +8,7 @@ from .throughportcurve import CreateThroughPortCurve
 from .throughportcurves import CreateThroughPortCurveS
 
 from .throughdropport import CreateThroughDropPortSeparated
+
+from .createwgstepper import CreateWgStepper
+
+from .throughdropportfacetoface import CreateThroughDropPortSeparatedFacetoFace

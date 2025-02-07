@@ -10,4 +10,7 @@ from .liftoffstruct import CreateLiftOff
 from .cross import CrossAlign
 from .dash import Dash
 from .nanoscribepattern import NanoScribePattern
-from . fieldBoxes import FieldBox
+from .fieldBoxes import FieldBox
+from .ringcalibration import CalibrationRings
+from .generateheaters import GenerateHeaters
+from .qrcodemaker import QrCodeMaker

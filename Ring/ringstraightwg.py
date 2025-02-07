@@ -15,8 +15,11 @@ def CreateWGRingStraightWg(fid, param, ncell):
     x_pos_text = param.get('x_pos_text', -1000)
     y_pos_text = param.get('y_pos_text', -20)
     nr = param.get('nr', 1000)
+    wchip = param.get('wchip', 3000)
     inp_WG_L = param.get('inp_WG_L', None)
     W = param.get('W', None)
+    Nmodulation = param.get('Nmodulation', None)
+    Amodulation = param.get('Amodulation', None)
     exp_w = param.get('exp_w', None)
     exp_w_tapper = param.get('exp_w_tapper',exp_w )
     font_size_pattern = param.get('font_size_pattern', 10)
@@ -99,11 +102,23 @@ def CreateWGRingStraightWg(fid, param, ncell):
                 name_out.append(Name + 'Cell' + str(ncell) + '_' + str(cnt))
                 fid.write('<' + Name + 'Cell' + str(ncell) +
                           '_' + str(cnt) + ' struct>\n')
+
+                if Nmodulation:
+                    fid.write('\t{} {} '.format(x0, y_pos) +
+                        '{} {} '.format(rr-(rw) - exp_w, rr-(rw) ) +
+                        '{:.0f} '.format(Nmodulation) +
+                        '{} '.format(Amodulation) +
+                        '10000 0 torusWaveIn\n')
+
+                    rw_ring = rr
+                else:
+                    rw_ring = rw
+
                 fid.write('\t<{} {} '.format(x0, y_pos) +
-                          '{} {} {} '.format(rr, rw, exp_w) +
+                          '{} {} {} '.format(rr, rw_ring, exp_w) +
                           '{} {} '.format(g, 2*inp_WG_L) +
                           '{} {} '.format(W, exp_w) +
-                          '0 ringInfiniteInvPosV>\n')
+                      '0 ringInfiniteInvPosV>\n')
 
                 # Create the label
                 if len(RR)>1:
@@ -143,11 +158,11 @@ def CreateWGRingStraightWg(fid, param, ncell):
                 # Create Bottom block waveguide
                 if blockline:
                     y_drop_out = y_pos - rr
-                    L = tot_length + 2*input_inv_taper_st_length
+                    L = wchip
                     # x1_in_lin = -L/2 + x0 + dec_block
                     # xend = L/2 - x0 + dec_block
-                    x1_in_lin = x0 - inp_WG_L - input_st_length - input_inv_taper_length - input_inv_taper_st_length
-                    xend = x0 + inp_WG_L + output_st_length + output_inv_taper_length + output_inv_taper_st_length
+                    x1_in_lin = -wchip/2
+                    xend = wchip/2
                     name_out.append(Name + 'BottBlckg_' + str(ncell) + '_' + str(cnt))
                     fid.write('<' + Name + 'BottBlckg_' + str(ncell) +
                               '_' + str(cnt) + ' struct>\n')
@@ -171,11 +186,11 @@ def CreateWGRingStraightWg(fid, param, ncell):
 
                 cnt += 1
 
-    fid.write('<RingStraightWg_MainCell' + str(ncell) + ' struct>\n')
+    fid.write('<' + Name +'RingStraight' + str(ncell) + ' struct>\n')
     for n in name_loop:
         fid.write('\t<' + n + ' 0 0 0 1 0 instance>\n')
 
     fid.write('\n')
     fid.write('# ******************************\n')
 
-    return ['RingStraightWg_MainCell' + str(ncell)]
+    return [Name  + 'RingStraight' + str(ncell)]
